@@ -1,0 +1,12 @@
+target/
+.settings/
+
+.cache
+
+.classpath
+.project
+
+*~
+*.sw?
+
+/*.png
