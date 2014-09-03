@@ -1,5 +1,7 @@
 package ai
 
+import ai.ucb._
+
 import collection.mutable.{ Map, HashMap }
 import util.Random.shuffle
 

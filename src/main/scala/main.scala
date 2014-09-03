@@ -1,4 +1,5 @@
 import ai._
+import ai.ucb._
 import java.io.File
 
 import Ordering.by
@@ -15,7 +16,7 @@ object Main {
   private val plays: Int = 10000
   private val trials: Int = 100
 
-  private final class BernoulliArm(val distribution: Double) extends Arm[Boolean] {
+  private case class BernoulliArm(distribution: Double) extends Arm[Boolean] {
     override def play: Boolean = nextDouble <= distribution
   }
 
