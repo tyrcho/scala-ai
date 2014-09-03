@@ -1,21 +1,19 @@
 package ai
 
 import Ordering.by
-import math.{log, min, pow, sqrt}
+import math.{ log, min, pow, sqrt }
 
 trait Arm[R] {
   def play: R
 }
 
-final class Stats[R, A <: Arm[R]]
-    (val arm: A,
-     val plays: Int,
-     val rewardSum: Double,
-     val rewardSquaredSum: Double,
-     val rewardAverage: Double,
-     val rewardVariance: Double) {
-
-  def this(arm: A) = this(arm, 0, 0, 0, 0, 0)
+case class Stats[R, A <: Arm[R]](
+  arm: A,
+  plays: Int = 0,
+  rewardSum: Double = 0,
+  rewardSquaredSum: Double = 0,
+  rewardAverage: Double = 0,
+  rewardVariance: Double = 0) {
 
   def play(bandit: Bandit[R, A]): (R, Stats[R, A]) = {
     val plays = this.plays + 1
@@ -25,16 +23,14 @@ final class Stats[R, A <: Arm[R]]
     val rewardSquaredSum = this.rewardSquaredSum + pow(normalizedReward, 2)
     val rewardAverage = rewardSum / plays
     val rewardVariance = rewardSquaredSum / plays - pow(rewardAverage, 2)
-    (reward, new Stats[R, A](arm, plays + 1, rewardSum, rewardSquaredSum, rewardAverage, rewardVariance))
+    (reward, Stats(arm, plays + 1, rewardSum, rewardSquaredSum, rewardAverage, rewardVariance))
   }
 
-  def ucb(banditPlays: Int): Double = {
+  def ucb(banditPlays: Int): Double =
     if (plays != 0) {
-      val bias: Double = log(banditPlays) / plays
+      val bias = log(banditPlays) / plays
       rewardAverage + sqrt(bias * min(0.25, rewardVariance + sqrt(bias * 2)))
-    }
-    else Double.PositiveInfinity
-  }
+    } else Double.PositiveInfinity
 
 }
 
@@ -42,10 +38,10 @@ object Stats {
   val byRewardAverage: Ordering[Stats[_, _]] = by(_.rewardAverage)
 }
 
-final class Bandit[R, A <: Arm[R]]
-    (val stats: List[Stats[R, A]],
-     val plays: Int,
-     val normalize: R => Double) {
+case class Bandit[R, A <: Arm[R]](
+  stats: List[Stats[R, A]],
+  plays: Int,
+  normalize: R => Double) {
 
   def this(arms: Traversable[A], normalize: R => Double) =
     this(arms.map(new Stats[R, A](_)).toList, 0, normalize)
