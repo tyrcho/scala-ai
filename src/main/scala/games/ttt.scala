@@ -2,6 +2,7 @@ package games
 
 import ai._
 import util.Random.nextInt
+import scala.annotation.tailrec
 
 sealed trait Player {
   def opponent: Player
@@ -16,56 +17,63 @@ case object X extends Player { val opponent = O }
 case object O extends Player { val opponent = X }
 
 object Board {
-  type Cells = Vector[Option[Player]]
-  type Group = (Option[Player], Option[Player], Option[Player])
+  type Cells = Map[(Int, Int), Player]
   class IllegalPlayException extends Throwable
 }
 
-case class Board(val cells: Board.Cells = Vector.fill(9)(None)) {
+case class Board(size: Int, needed: Int, cells: Board.Cells = Map.empty) {
 
-  private lazy val emptyCells: Seq[Int] =
-    (0 until 9).filter(cells(_).isEmpty)
+  private lazy val emptyCells: Seq[(Int, Int)] =
+    for {
+      i <- 0 until size
+      j <- 0 until size
+      if !cells.isDefinedAt(i, j)
+    } yield (i, j)
 
-  private lazy val groups: Traversable[Board.Group] = List(
-    (cells(0), cells(1), cells(2)),
-    (cells(3), cells(4), cells(5)),
-    (cells(6), cells(7), cells(8)),
-    (cells(0), cells(3), cells(6)),
-    (cells(1), cells(4), cells(7)),
-    (cells(2), cells(5), cells(8)),
-    (cells(0), cells(4), cells(8)),
-    (cells(2), cells(4), cells(6)))
-
-  lazy val legalPlays: Seq[Int] =
+  lazy val legalPlays: Seq[(Int, Int)] =
     if (winner.nonEmpty) Nil else emptyCells
 
-  def play(player: Player, index: Int): Board = {
-    if (legalPlays.find(index.equals) == None)
+  def play(player: Player, i: Int, j: Int): Board = {
+    if (!legalPlays.contains((i, j)))
       throw new Board.IllegalPlayException
-    new Board(cells.updated(index, Some(player)))
+    copy(cells = cells.updated((i, j), player))
   }
 
-  lazy val winner: Option[Player] = groups.find(g => g._1 == g._2 && g._2 == g._3 && g._1 != None) match {
-    case None => None
-    case Some(group) => group._1
+  lazy val winner: Option[Player] = {
+    for {
+      (dx, dy) <- Seq((0, 1), (1, 0), (1, 1), (1, -1))
+      ((x, y), p) <- cells
+      if isWin(p, x, y, dx, dy)
+    } yield p
+  }.headOption
+
+  @tailrec
+  private def isWin(p: Player, x: Int, y: Int, dx: Int, dy: Int, found: Int = 0): Boolean = {
+    found == needed ||
+      (cells.get((x, y)) == Some(p) &&
+        isWin(p, x + dx, y + dy, dx, dy, found + 1))
   }
 
-  override def toString = {
-    val cells: Seq[String] = this.cells.map(_ match {
-      case Some(player) => player.toString
-      case None => " "
-    })
-    "%s%s%s\n%s%s%s\n%s%s%s".format(cells: _*)
-  }
+  override def toString = (for {
+    i <- 0 until size
+  } yield (for {
+    j <- 0 until size
+  } yield {
+    cells.get((i, j)) match {
+      case None => "."
+      case Some(p) => p.toString
+    }
+  }).mkString).
+    mkString("\n")
 }
 
 case class TTTState(board: Board, player: Player) extends State[Option[Player], TTTTransition] {
-  override lazy val transitions: Seq[TTTTransition] = board.legalPlays.map(new TTTTransition(this, player, _))
+  override lazy val transitions: Seq[TTTTransition] = board.legalPlays.map { case (i, j) => new TTTTransition(this, player, i, j) }
   override lazy val value: Option[Player] = board.winner
 }
 
-case class TTTTransition(from: TTTState, player: Player, index: Int) extends Transition[TTTState] {
-  lazy val to = TTTState(from.board.play(player, index), player.opponent)
+case class TTTTransition(from: TTTState, player: Player, i: Int, j: Int) extends Transition[TTTState] {
+  lazy val to = TTTState(from.board.play(player, i, j), player.opponent)
 }
 
 object TTTSearchPolicy extends SearchPolicy[Option[Player], TTTState, TTTTransition] {
@@ -77,10 +85,10 @@ object TTTSearchPolicy extends SearchPolicy[Option[Player], TTTState, TTTTransit
 }
 
 object MainTTT extends App {
-  var state = new TTTState(new Board, X)
+  var state = new TTTState(Board(6,4), X)
   while (state.transitions.nonEmpty) {
     val root = Node(state, TTTSearchPolicy)
-    for (i <- 1 to 1000)
+    for (i <- 1 to 10*1000)
       root.value
     state = root.asInstanceOf[BanditNode[_, _, TTTTransition]].bestTransition.to
     println(state.board + "\n---")
