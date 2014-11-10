@@ -5,78 +5,88 @@ import ai.ucb._
 import collection.mutable.{ Map, HashMap }
 import util.Random.shuffle
 
-trait State[V, T <: Transition[_ <: State[V, T]]] {
-  def transitions: Traversable[T]
-  def value: V
-}
+trait Game {
+  type State <: GameState
+  type Transition <: GameTransition
+  type SearchPolicy <: GameSearchPolicy
+  type StateValue
 
-trait Transition[S <: State[_, _ <: Transition[S]]] {
-  def from: S
-  def to: S
-}
-
-trait SearchPolicy[V, S <: State[V, T], T <: Transition[S]] {
-  def stochasticTransition(state: S): T = shuffle(state.transitions).head
-  def normalize(value: V, state: S): Double
-}
-
-sealed trait Node[V, S <: State[V, _]] {
-  def state: S
-  def value: V
-}
-
-object Node {
-  def apply[V, S <: State[V, T], T <: Transition[S]](state: S, policy: SearchPolicy[V, S, T], nodes: Map[S, Node[V, S]]): Node[V, S] =
-    nodes.getOrElseUpdate(state,
-      if (state.transitions.nonEmpty)
-        new BanditNode[V, S, T](state, policy, nodes)
-      else
-        new TerminalNode[V, S](state))
-
-  def apply[V, S <: State[V, T], T <: Transition[S]](state: S, policy: SearchPolicy[V, S, T]): Node[V, S] =
-    apply(state, policy, new HashMap[S, Node[V, S]])
-}
-
-case class BanditNode[V, S <: State[V, T], T <: Transition[S]](state: S,
-  policy: SearchPolicy[V, S, T],
-  nodes: Map[S, Node[V, S]]) extends Node[V, S] {
-
-  private val arms = state.transitions.map(new Edge(_, policy, nodes))
-
-  private var bandit = new Bandit[V, Edge[V, S, T]](arms, policy.normalize(_, state))
-
-  // has side effects :(
-  override def value: V = bandit.play match {
-    case (value, bandit) => this.bandit = bandit; value
+  trait GameState {
+    def transitions: Traversable[Transition]
+    def value: StateValue
   }
 
-  def bestTransition = bandit.bestArm.transition
-}
+  trait GameTransition {
+    def from: State
+    def to: State
+  }
 
-case class TerminalNode[V, S <: State[V, _]](state: S) extends Node[V, S] {
-  override def value = state.value
-}
+  trait GameSearchPolicy {
+    def stochasticTransition(state: State): Transition = shuffle(state.transitions).head
+    def normalize(value: StateValue, state: State): Double
+  }
 
-case class Edge[V, S <: State[V, T], T <: Transition[S]](
-  transition: T,
-  policy: SearchPolicy[V, S, T],
-  nodes: Map[S, Node[V, S]]) extends Arm[V] {
+  sealed trait Node {
+    def state: State
+    def value: StateValue
+  }
 
-  private lazy val to = Node(transition.to, policy, nodes)
-  private var initialized = false
+  object Node {
+    def apply(
+      state: State,
+      policy: SearchPolicy,
+      nodes: Map[State, Node]): Node =
+      nodes.getOrElseUpdate(state,
+        if (state.transitions.nonEmpty)
+          new BanditNode(state, policy, nodes)
+        else
+          new TerminalNode(state))
 
-  private def playStochastic(state: S): V =
-    if (state.transitions.nonEmpty)
-      playStochastic(policy.stochasticTransition(state).to)
-    else
-      state.value
+    def apply(state: State, policy: SearchPolicy): Node =
+      apply(state, policy, new HashMap[State, Node])
+  }
 
-  // has side effects :(
-  override def play: V =
-    if (initialized)
-      to.value
-    else {
-      initialized = true
-      playStochastic(transition.to)
+  case class BanditNode(state: State,
+    policy: SearchPolicy,
+    nodes: Map[State, Node]) extends Node {
+
+    private val arms = state.transitions.map(new Edge(_, policy, nodes))
+
+    private var bandit = new Bandit[StateValue, Edge](arms, policy.normalize(_, state))
+
+    // has side effects :(
+    def value: StateValue = bandit.play match {
+      case (value, bandit) => this.bandit = bandit; value
     }
+
+    def bestTransition = bandit.bestArm.transition
+  }
+
+  case class TerminalNode(state: State) extends Node {
+    def value = state.value
+  }
+
+  case class Edge(
+    transition: Transition,
+    policy: SearchPolicy,
+    nodes: Map[State, Node]) extends Arm[StateValue] {
+
+    private lazy val to = Node(transition.to, policy, nodes)
+    private var initialized = false
+
+    private def playStochastic(state: State): StateValue =
+      if (state.transitions.nonEmpty)
+        playStochastic(policy.stochasticTransition(state).to)
+      else
+        state.value
+
+    // has side effects :(
+    def apply: StateValue =
+      if (initialized)
+        to.value
+      else {
+        initialized = true
+        playStochastic(transition.to)
+      }
+  }
 }

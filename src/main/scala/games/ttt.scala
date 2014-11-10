@@ -67,30 +67,48 @@ case class Board(size: Int, needed: Int, cells: Board.Cells = Map.empty) {
     mkString("\n")
 }
 
-case class TTTState(board: Board, player: Player) extends State[Option[Player], TTTTransition] {
-  override lazy val transitions: Seq[TTTTransition] = board.legalPlays.map { case (i, j) => new TTTTransition(this, player, i, j) }
-  override lazy val value: Option[Player] = board.winner
-}
+object TTTGame extends Game {
+  type State = TTTState
+  type Transition = TTTTransition
+  type SearchPolicy = TTTSearchPolicy.type
+  type StateValue = Option[Player]
 
-case class TTTTransition(from: TTTState, player: Player, i: Int, j: Int) extends Transition[TTTState] {
-  lazy val to = TTTState(from.board.play(player, i, j), player.opponent)
-}
+  case class TTTState(board: Board, player: Player) extends GameState {
+    override lazy val transitions: Seq[TTTTransition] =
+      board.legalPlays.map {
+        case (i, j) => new TTTTransition(this, player, i, j)
+      }
 
-object TTTSearchPolicy extends SearchPolicy[Option[Player], TTTState, TTTTransition] {
-  override def stochasticTransition(state: TTTState): TTTTransition = state.transitions(nextInt(state.transitions.size))
-  override def normalize(value: Option[Player], state: TTTState): Double = value match {
-    case None => 0.5
-    case Some(player: Player) => if (player == state.player) 1 else 0
+    override lazy val value: Option[Player] = board.winner
+  }
+
+  case class TTTTransition(from: TTTState, player: Player, i: Int, j: Int) extends GameTransition {
+    lazy val to =
+      TTTState(from.board.play(player, i, j), player.opponent)
+  }
+
+  object TTTSearchPolicy extends GameSearchPolicy {
+    override def stochasticTransition(state: TTTState): TTTTransition =
+      state.transitions(nextInt(state.transitions.size))
+
+    override def normalize(value: Option[Player], state: TTTState): Double = value match {
+      case None => 0.5
+      case Some(player: Player) => if (player == state.player) 1 else 0
+    }
   }
 }
 
 object MainTTT extends App {
-  var state = new TTTState(Board(6,4), X)
+  import TTTGame._
+  var state = new TTTState(Board(5, 4), X)
   while (state.transitions.nonEmpty) {
     val root = Node(state, TTTSearchPolicy)
-    for (i <- 1 to 10*1000)
+    val start = System.nanoTime
+    val delay = 1000 * 1000 * 1000 // 1000 ms
+    while (System.nanoTime < start + delay) {
       root.value
-    state = root.asInstanceOf[BanditNode[_, _, TTTTransition]].bestTransition.to
+    }
+    state = root.asInstanceOf[BanditNode].bestTransition.to
     println(state.board + "\n---")
   }
 }

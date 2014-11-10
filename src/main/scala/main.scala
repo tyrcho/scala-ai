@@ -3,7 +3,7 @@ import ai.ucb._
 import java.io.File
 
 import Ordering.by
-import util.Random.{nextDouble, shuffle}
+import util.Random.{ nextDouble, shuffle }
 
 import org.jfree.chart.ChartFactory.createXYLineChart
 import org.jfree.chart.ChartUtilities.saveChartAsPNG
@@ -17,7 +17,7 @@ object Main {
   private val trials: Int = 100
 
   private case class BernoulliArm(distribution: Double) extends Arm[Boolean] {
-    override def play: Boolean = nextDouble <= distribution
+    override def apply: Boolean = nextDouble <= distribution
   }
 
   def normalize(reward: Boolean): Double = if (reward) 1 else 0

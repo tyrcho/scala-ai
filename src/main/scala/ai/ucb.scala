@@ -4,11 +4,9 @@ import Ordering.by
 import math.{ log, min, pow, sqrt }
 import grizzled.slf4j.Logging
 
-package object ucb {
+object ucb {
 
-  trait Arm[R] {
-    def play: R
-  }
+  type Arm[+R] = Function0[R]
 
   case class Stats[R, A <: Arm[R]](
     arm: A,
@@ -20,13 +18,13 @@ package object ucb {
 
     def play(bandit: Bandit[R, A]): (R, Stats[R, A]) = {
       val plays = this.plays + 1
-      val reward = arm.play
+      val reward = arm()
       val normalizedReward = bandit.normalize(reward)
       val rewardSum = this.rewardSum + normalizedReward
       val rewardSquaredSum = this.rewardSquaredSum + pow(normalizedReward, 2)
       val rewardAverage = rewardSum / plays
       val rewardVariance = rewardSquaredSum / plays - pow(rewardAverage, 2)
-      (reward, Stats(arm, plays + 1, rewardSum, rewardSquaredSum, rewardAverage, rewardVariance))
+      (reward, Stats(arm, plays, rewardSum, rewardSquaredSum, rewardAverage, rewardVariance))
     }
 
     def ucb(banditPlays: Int): Double =
@@ -43,12 +41,16 @@ package object ucb {
     stats: List[Stats[R, A]],
     plays: Int,
     normalize: R => Double) extends Logging {
-    
+
     debug(this)
 
     def this(arms: Traversable[A], normalize: R => Double) =
       this(arms.map(new Stats[R, A](_)).toList, 0, normalize)
 
+    /**
+     * Plays current best arm.
+     * Returns the reward for this arm, and the updated Bandit.
+     */
     def play: (R, Bandit[R, A]) =
       stats.head.play(this) match {
         case (reward, updated) => {
