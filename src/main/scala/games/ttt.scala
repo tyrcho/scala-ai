@@ -97,14 +97,14 @@ case class TTTGame(size: Int, needed: Int) extends Game {
     override def stochasticTransition(state: State): Transition =
       stochasticHelper(state, weight)
 
-    def weight(t: Transition) = sqr(t.i - size / 2) + sqr(t.j - size / 2)
+    def weight(t: Transition) = sqr(size / 2 + 1) - sqr(t.i - size / 2) - sqr(t.j - size / 2)
 
     def sqr(i: Int) = i * i
   }
 }
 
 object MainTTT extends App {
-  val game = TTTGame(6, 4)
+  val game = TTTGame(8, 4)
   import game._
   var state = TTTState(Board(), X)
   while (state.transitions.nonEmpty) {
