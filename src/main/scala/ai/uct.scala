@@ -1,9 +1,10 @@
 package ai
 
 import ai.ucb._
-
 import collection.mutable.{ Map, HashMap }
 import util.Random.shuffle
+import scala.util.Random
+import scala.annotation.tailrec
 
 trait Game {
   type State <: GameState
@@ -24,6 +25,21 @@ trait Game {
   trait GameSearchPolicy {
     def stochasticTransition(state: State): Transition = shuffle(state.transitions).head
     def normalize(value: StateValue, state: State): Double
+
+    def stochasticHelper(from: State, weight: Transition => Int): Transition = {
+      val weights = for (t <- from.transitions) yield t -> weight(t)
+      sample(weights)
+    }
+
+    def sample[T](weighted: Traversable[(T, Int)]): T = {
+      @tailrec
+      def recurse(rest: Int, elements: Traversable[(T, Int)]): T = {
+        val (elt, weight) = elements.head
+        if (weight >= rest) elt else recurse(rest - weight, elements.tail)
+      }
+
+      recurse(weighted.map(_._2).sum, weighted)
+    }
   }
 
   sealed trait Node {
