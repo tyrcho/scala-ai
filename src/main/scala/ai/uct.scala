@@ -1,46 +1,10 @@
 package ai
 
-import ai.ucb._
-import collection.mutable.{ Map, HashMap }
-import util.Random.shuffle
-import scala.util.Random
-import scala.annotation.tailrec
+import scala.collection.mutable.{HashMap, Map}
 
-trait Game {
-  type State <: GameState
-  type Transition <: GameTransition
-  type SearchPolicy <: GameSearchPolicy
-  type StateValue
+import ai.ucb.{Arm, Bandit}
 
-  trait GameState {
-    def transitions: Traversable[Transition]
-    def value: StateValue
-  }
-
-  trait GameTransition {
-    def from: State
-    def to: State
-  }
-
-  trait GameSearchPolicy {
-    def stochasticTransition(state: State): Transition = shuffle(state.transitions).head
-    def normalize(value: StateValue, state: State): Double
-
-    def stochasticHelper(from: State, weight: Transition => Int): Transition = {
-      val weights = for (t <- from.transitions) yield t -> weight(t)
-      sample(weights)
-    }
-
-    def sample[T](weighted: Traversable[(T, Int)]): T = {
-      @tailrec
-      def recurse(rest: Int, elements: Traversable[(T, Int)]): T = {
-        val (elt, weight) = elements.head
-        if (weight >= rest) elt else recurse(rest - weight, elements.tail)
-      }
-
-      recurse(weighted.map(_._2).sum, weighted)
-    }
-  }
+trait UctGame { self: Game =>
 
   sealed trait Node {
     def state: State
@@ -63,8 +27,8 @@ trait Game {
   }
 
   case class BanditNode(state: State,
-    policy: SearchPolicy,
-    nodes: Map[State, Node]) extends Node {
+                        policy: SearchPolicy,
+                        nodes: Map[State, Node]) extends Node {
 
     private val arms = state.transitions.map(new Edge(_, policy, nodes))
 

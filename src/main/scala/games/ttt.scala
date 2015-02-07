@@ -17,7 +17,7 @@ private object Player {
     player.map(_.opponent)
 }
 
-case class TTTGame(size: Int, needed: Int) extends Game {
+case class TTTGame(size: Int, needed: Int) extends UctGame with Game {
 
   object Board {
     type Cells = Map[(Int, Int), Player]
@@ -62,7 +62,7 @@ case class TTTGame(size: Int, needed: Int) extends Game {
       j <- 0 until size
     } yield {
       cells.get((i, j)) match {
-        case None => "."
+        case None    => "."
         case Some(p) => p.toString
       }
     }).mkString).
@@ -90,7 +90,7 @@ case class TTTGame(size: Int, needed: Int) extends Game {
 
   object TTTSearchPolicy extends GameSearchPolicy {
     override def normalize(value: Option[Player], state: TTTState): Double = value match {
-      case None => 0.5
+      case None                 => 0.5
       case Some(player: Player) => if (player == state.player) 1 else 0
     }
 
@@ -104,7 +104,7 @@ case class TTTGame(size: Int, needed: Int) extends Game {
 }
 
 object MainTTT extends App {
-  val game = TTTGame(8, 4)
+  val game = TTTGame(size = 6, needed = 4)
   import game._
   var state = TTTState(Board(), X)
   while (state.transitions.nonEmpty) {
