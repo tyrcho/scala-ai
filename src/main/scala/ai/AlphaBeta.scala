@@ -13,47 +13,33 @@ trait AlphaBeta extends Logging { self: Game =>
   }
 
   private def alphaBetaValue(t: Transition, player: Player) = {
-    val value = alphabeta(t.to, player)
+    val value = negamax(t.to, player)
     debug(s"$value for $player \n$t")
     value
   }
 
   def heuristicValue(node: State, player: Player): Double
 
-  def alphabeta(
+  def negamax(
     node: State,
     player: Player,
     depth: Int = 15,
     alphaIni: Double = NEG_INF,
-    betaIni: Double = POS_INF,
-    maximizingPlayer: Boolean = true): Double = {
+    betaIni: Double = POS_INF): Double = {
     val transitions = node.transitions
     if (depth == 0 || transitions.isEmpty) heuristicValue(node, player)
-    else if (maximizingPlayer) {
       var alpha = alphaIni
-      var v = NEG_INF
+      var best = NEG_INF
       var break = false
       val it = transitions.toIterator
       while (!break && it.hasNext) {
         val t = it.next
-        v = max(v, alphabeta(t.to, player, depth - 1, alpha, betaIni, false))
+        val v= -negamax(t.to, t.to.next, depth - 1, -betaIni, -alpha)
+        best = max(best, v)
         alpha = max(alpha, v)
         break = betaIni <= alpha
       }
-      v
-    } else {
-      var beta = betaIni
-      var v = POS_INF
-      var break = false
-      val it = transitions.toIterator
-      while (!break && it.hasNext) {
-        val t = it.next
-        v = min(v, alphabeta(t.to, player, depth - 1, alphaIni, beta, true))
-        beta = min(beta, v)
-        break = beta <= alphaIni
-      }
-      v
-    }
+      best
   }
 
   val POS_INF = Double.MaxValue
