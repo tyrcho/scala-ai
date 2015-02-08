@@ -3,16 +3,17 @@ package ai
 import scala.util.Random._
 import scala.annotation.tailrec
 
-
 trait Game {
   type State <: GameState
   type Transition <: GameTransition
   type SearchPolicy <: GameSearchPolicy
   type StateValue
+  type Player
 
   trait GameState {
     def transitions: Traversable[Transition]
     def value: StateValue
+    def next: Player
   }
 
   trait GameTransition {
@@ -21,7 +22,9 @@ trait Game {
   }
 
   trait GameSearchPolicy {
-    def stochasticTransition(state: State): Transition = shuffle(state.transitions).head
+    def stochasticTransition(state: State): Transition =
+      shuffle(state.transitions).head
+
     def normalize(value: StateValue, state: State): Double
 
     def stochasticHelper(from: State, weight: Transition => Int): Transition = {
@@ -29,9 +32,9 @@ trait Game {
       sample(weights)
     }
 
-    def sample[T](weighted: Traversable[(T, Int)]): T = {
+    def sample(weighted: Traversable[(Transition, Int)]): Transition = {
       @tailrec
-      def recurse(rest: Int, elements: Traversable[(T, Int)]): T = {
+      def recurse(rest: Int, elements: Traversable[(Transition, Int)]): Transition = {
         val (elt, weight) = elements.head
         if (weight >= rest) elt else recurse(rest - weight, elements.tail)
       }
@@ -40,5 +43,4 @@ trait Game {
     }
   }
 
-  
 }
