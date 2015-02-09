@@ -25,7 +25,7 @@ trait AlphaBeta extends Logging { self: Game =>
   def negamax(
     node: State,
     player: Player,
-    depth: Int = 15,
+    depth: Int = 3,
     alphaIni: Double = NEG_INF,
     betaIni: Double = POS_INF): Double = {
     val transitions = node.transitions
