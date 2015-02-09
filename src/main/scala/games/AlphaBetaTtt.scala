@@ -11,11 +11,11 @@ class AlphaBetaTtt(size: Int, needed: Int) extends TTTGame(size, needed) with Al
   def heuristicValue(node: State, player: Player) =
     node.board.winner match {
       case Some(p) if p == player =>
-        POS_INF
+        POS_INF - node.moves
       case Some(p) if p != player =>
-        NEG_INF
+        NEG_INF + node.moves
       case None =>
-        node.board.cells.values.filter(_ == node.next).size
+        0
     }
 }
 
@@ -25,9 +25,12 @@ object AlphaBetaTtt extends App {
   val map = Map(
     (0, 0) -> X,
     (1, 1) -> X)
-  var state = TTTState(Board(), X)
+  var state = TTTState(Board(), O)
+  println(state.board + "\n\n")
   while (state.transitions.nonEmpty) {
-    state = game.bestMove(state).to
+    val move = game.bestMove(state)
+    println(move)
+    state = move.to
     println(state.board + "\n\n")
   }
 }

@@ -32,10 +32,10 @@ case class TTTGame(size: Int, needed: Int) extends Game {
     lazy val legalPlays: Seq[(Int, Int)] =
       if (winner.nonEmpty) Nil else emptyCells
 
-    def play(TttPlayer: TttPlayer, i: Int, j: Int): Board = {
+    def play(player: TttPlayer, i: Int, j: Int): Board = {
       if (!legalPlays.contains((i, j)))
         throw new Board.IllegalPlayException
-      copy(cells = cells.updated((i, j), TttPlayer))
+      copy(cells = cells.updated((i, j), player))
     }
 
     lazy val winner: Option[TttPlayer] = {
@@ -72,7 +72,7 @@ case class TTTGame(size: Int, needed: Int) extends Game {
   type StateValue = Option[TttPlayer]
   type Player = TttPlayer
 
-  case class TTTState(board: Board, next: TttPlayer) extends GameState {
+  case class TTTState(board: Board, next: TttPlayer, moves: Int = 0) extends GameState {
     override lazy val transitions: Seq[TTTTransition] =
       board.legalPlays.map {
         case (i, j) => TTTTransition(this, next, i, j)
@@ -85,7 +85,7 @@ case class TTTGame(size: Int, needed: Int) extends Game {
 
   case class TTTTransition(from: TTTState, player: TttPlayer, i: Int, j: Int) extends GameTransition {
     lazy val to =
-      TTTState(from.board.play(player, i, j), player.opponent)
+      TTTState(from.board.play(player, i, j), player.opponent, from.moves + 1)
   }
 
   object TTTSearchPolicy extends GameSearchPolicy {
