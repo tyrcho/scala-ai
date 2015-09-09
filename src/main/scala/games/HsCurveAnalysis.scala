@@ -29,12 +29,12 @@ object HsCurveAnalysis extends App with Logging {
     def avgMiss(turn: Int): Double =
       averageMiss(Simulation(curve, turn), 100)
 
-    def total = curve.values.sum
+    val total = curve.values.sum
 
     def print: String = (for (i <- curve.keys.min to curve.keys.max) yield s"$i : " + "*" * curve(i).toInt).mkString("\n")
   }
 
-  def averageMiss(sim: Simulation, repeats: Int = 10000): Double = {
+  def averageMiss(sim: Simulation, repeats: Int = 1000): Double = {
     List.fill(repeats)(play(sim)).sum / repeats.toDouble
   }
 
@@ -44,26 +44,39 @@ object HsCurveAnalysis extends App with Logging {
     } yield List.fill(count.toInt)(cost)).flatten.toList)
     debug(initial.toString)
 
-    val initialSize = 3
+    val coin = util.Random.nextBoolean
+    val initialSize = 3 + (if (coin) 1 else 0)
     val hand = initial.take(initialSize)
-    playTurn(hand, initial.drop(initialSize), 1, sim.turn, 0)
+    playTurn(hand, initial.drop(initialSize), 1, sim.turn, 0, coin)
   }
 
-  def playTurn(hand: List[Card], deck: List[Card], turn: Int, max: Int, res: Result): Result =
+  def playTurn(hand: List[Card], deck: List[Card], turn: Int, max: Int, res: Result, hasCoin: Boolean): Result =
     if (turn > max) res else {
       val newHand = deck.head :: hand
-      val played = bestCards(newHand, turn)
+      val played = bestCards(newHand, turn, Nil, hasCoin)
+      val usedMana = played.sum
+      val stillCoin = hasCoin && usedMana <= turn
       debug(s"turn $turn : hand $newHand | played $played")
-      val cost = turn - played.sum
-      playTurn(newHand diff played, deck.tail, turn + 1, max, res + cost)
+      val cost = turn - usedMana
+      playTurn(newHand diff played, deck.tail, turn + 1, max, res + cost, stillCoin)
     }
 
-  def bestCards(hand: List[Card], available: Int, chosen: List[Card] = Nil): List[Card] = {
-    val candidates = hand.filter(_ <= available)
+  def bestCards(hand: List[Card], available: Int, chosen: List[Card] = Nil, hasCoin: Boolean): List[Card] = {
+    val availWithCoin = available + (if (hasCoin) 1 else 0)
+    val candidates = hand.filter(_ <= availWithCoin)
     if (candidates.isEmpty) chosen
     else {
-      val m = candidates.max
-      bestCards(hand diff List(m), available - m, m :: chosen)
+      candidates.filter(_ == available).headOption match {
+        case Some(best) => best :: chosen //exactly the cost
+        case None =>
+          candidates.filter(_ == availWithCoin).headOption match {
+            case Some(bestWithCoin) => bestWithCoin :: chosen
+            case None =>
+              val m = candidates.filter(_ <= available).max
+              bestCards(hand diff List(m), available - m, m :: chosen, false) // only use coin for max card
+          }
+      }
+
     }
   }
 
