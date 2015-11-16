@@ -10,6 +10,31 @@ object HsCurveAnalysis extends App with Logging {
   type Card = Int
   case class Simulation(curve: Curve, turn: Int)
 
+  case class Tournament(players: Array[Curve], keyTurn: Int) {
+    def sorted: List[Curve] = {
+      var scores: Map[Curve, Int] = players.map(_ -> 0).toMap
+      for {
+        count <- 0 to 20
+        i <- 0 until players.size
+        j <- i + 1 until players.size
+        p1 = players(i)
+        p2 = players(j)
+        s1 = play(Simulation(p1, keyTurn))
+        s2 = play(Simulation(p2, keyTurn))
+      } {
+        if (s1 > s2)
+          scores = scores.updated(p1, scores(p1) + 3)
+        else if (s1 < s2)
+          scores = scores.updated(p2, scores(p2) + 3)
+        else {
+          scores = scores.updated(p1, scores(p1) + 1)
+          scores = scores.updated(p2, scores(p1) + 1)
+        }
+      }
+      players.toList.sortBy(scores)
+    }
+  }
+
   implicit class CurveOps(curve: Curve) {
     def +(other: Curve): Curve =
       (for {
@@ -24,8 +49,8 @@ object HsCurveAnalysis extends App with Logging {
 
     def mutate: Curve = {
       val cards = curve.deck
-      val less= cards.head
-      val more=util.Random.shuffle(((0 to 10).toSet - less).toList).head
+      val less = cards.head
+      val more = util.Random.shuffle(((0 to 10).toSet - less).toList).head
       curve.updated(more, curve(more) + 1).updated(less, curve(less) - 1)
     }
 
@@ -46,9 +71,8 @@ object HsCurveAnalysis extends App with Logging {
     def print: String = (for (i <- curve.keys.min to curve.keys.max) yield s"$i : " + "*" * curve(i).toInt).mkString("\n")
   }
 
-  def averageMiss(sim: Simulation, repeats: Int = 1000): Double = {
+  def averageMiss(sim: Simulation, repeats: Int = 1000): Double =
     List.fill(repeats)(play(sim).toLong).sum / repeats.toDouble
-  }
 
   def play(sim: Simulation): Result = {
     val initial = sim.curve.deck
@@ -89,7 +113,6 @@ object HsCurveAnalysis extends App with Logging {
               bestCards(hand diff List(m), available - m, m :: chosen, false) // only use coin for max card
           }
       }
-
     }
   }
 
@@ -102,9 +125,6 @@ object HsCurveAnalysis extends App with Logging {
   def nextGen(selected: List[Curve]): List[Curve] = {
     selected ::: List.fill(poolSize - selected.size)(nextGen1(selected))
   }
-
-  def select(curves: List[Curve]) =
-    curves.sortBy(_.avgMiss(keyTurn)).dropRight(6)
 
   val keyTurn = 7
   val sampleCurve = Map[Int, Int](1 -> 4, 2 -> 6, 3 -> 6, 4 -> 6, 5 -> 4, 6 -> 2, 7 -> 2).withDefaultValue(0)
@@ -119,7 +139,8 @@ object HsCurveAnalysis extends App with Logging {
 
   var curves = List.fill(poolSize)(sampleCurve.mutate)
   for (i <- 1 to 1000) {
-    val selected = curves.sortBy(_.avgMiss(keyTurn, 30 * generation)).dropRight(poolSize * 3 / 4)
+//    val selected = curves.sortBy(_.avgMiss(keyTurn, 30 * generation)).dropRight(poolSize * 3 / 4)
+    val selected = Tournament(curves.toArray, keyTurn).sorted.dropRight(poolSize * 3 / 4)
     curves = nextGen(selected)
     println(selected.head.print)
     println(generation + " => " + selected.head.avgMiss(keyTurn))
