@@ -23,10 +23,9 @@ object HsCurveAnalysis extends App with Logging {
       (curve + other).mutate.norm
 
     def mutate: Curve = {
-      val temp = curve.mapValues(_ + 2)
-      val cards = temp.deck
-      val more = cards.head
-      val less = cards.find(_ != more).get
+      val cards = curve.deck
+      val less= cards.head
+      val more=util.Random.shuffle(((0 to 10).toSet - less).toList).head
       curve.updated(more, curve(more) + 1).updated(less, curve(less) - 1)
     }
 
