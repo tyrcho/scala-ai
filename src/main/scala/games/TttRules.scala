@@ -63,7 +63,7 @@ case class TTTGame(size: Int, needed: Int) extends Game {
         case Some(p) => p.toString
       }
     }).mkString).
-      mkString("\n")
+      mkString("\n","\n","\n")
   }
 
   type State = TTTState

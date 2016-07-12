@@ -9,22 +9,29 @@ import grizzled.slf4j.Logging
 
 class AlphaBetaTtt(size: Int, needed: Int) extends TTTGame(size, needed) with AlphaBeta with Logging {
 
-  def heuristicValue(node: State, player: Player) =
+  def heuristicValue(node: State, player: Player) = {
+    val board = node.board
     node.board.winner match {
       case Some(p) if p == player =>
-        POS_INF - node.moves
+        debug(s"$p wins in $board")
+        1000 - node.moves // when all is lost, try to last longer
       case Some(p) if p != player =>
-        NEG_INF + node.moves
-      case None =>
-        value(node.board, player)
+        debug(s"$p wins in $board so $player lost")
+        -1000 + node.moves
+      case None => value(node.board, player)
     }
+  }
 
   private def value(b: Board, p: Player) = {
-    for {
-      ((i, j), pl) <- b.cells
-      sign = if (p == pl) -1 else 1
-    } yield sign * (sqr(i - size / 2) + sqr(j - size / 2))
-  }.sum
+    val v = {
+      for {
+        ((i, j), pl) <- b.cells
+        sign = if (p == pl) -1 else 1
+      } yield sign * (sqr(i - size / 2) + sqr(j - size / 2))
+    }.sum
+    debug(s"$v is estimation for $b")
+    v
+  }
 
   def sqr(n: Double) = n * n
 }
@@ -38,7 +45,7 @@ object AlphaBetaTtt extends App {
   var state = TTTState(Board(), O)
   println(state.board + "\n\n")
   while (state.transitions.nonEmpty) {
-    val move = game.bestMove(state)
+    val move = game.bestMove(state, 3)
     state = move.to
     println(state.board + "\n\n")
   }
