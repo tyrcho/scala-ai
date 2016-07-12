@@ -12,7 +12,7 @@ import org.jfree.chart.axis.LogarithmicAxis
 import org.jfree.chart.plot.PlotOrientation.VERTICAL
 import org.jfree.data.xy.DefaultXYDataset
 
-object Main {
+object BernouilliBandit {
   private val plays: Int = 10000
   private val trials: Int = 100
 
