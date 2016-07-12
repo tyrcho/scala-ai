@@ -1,13 +1,17 @@
 package geo
 
 object Geometry {
+
+  import math._
+
   case class Pos(x: Double, y: Double) {
     def +(p: Pos) = Pos(x + p.x, y + p.y)
     def -(p: Pos) = Pos(x - p.x, y - p.y)
     def *(r: Double) = Pos(x * r, y * r)
     def /(r: Double) = Pos(x / r, y / r)
 
-    def dist(other: Pos): Double = math.sqrt(dist2(other))
+    def norm: Double = dist(Pos(0, 0))
+    def dist(other: Pos): Double = sqrt(dist2(other))
     def dist2(other: Pos): Double = sqr(this.x - other.x) + sqr(this.y - other.y)
 
     // point of line a-b closest to this
@@ -23,7 +27,65 @@ object Geometry {
     }
   }
 
-  case class Entity(pos: Pos, speed: Pos, accel: Pos)
+  val MAX_ROTATION = 18
+  // angles
+  val EAST = 0
+  val SOUTH = 90
+  val WEST = 180
+  val NORTH = 270
+
+  case class Entity(
+      pos: Pos = Pos(0, 0),
+      speed: Pos = Pos(0, 0),
+      angle: Double = 0) {
+
+    /*
+     * Cette fonction renvoie l'angle que devrait avoir le pod pour faire face au point donné.
+		 * Donc si le point se trouve par exemple exactement en haut à droite du pod, cette fonction donnera 315.
+		 * 0 veut dire que le pod regarde plein est. 90 c'est plein sud. 180 plein ouest. Et enfin 270 plein nord. 
+     */
+    def deltaAngleToFace(p: Pos) = {
+      val a = angleTo(p)
+
+      // Pour connaitre le sens le plus proche, il suffit de regarder dans les 2 sens et on garde le plus petit
+      // Les opérateurs ternaires sont la uniquement pour éviter l'utilisation d'un operateur % qui serait plus lent
+      val right = if (angle <= a) a - angle else 360 - angle + a
+      val left = if (angle >= a) angle - a else angle + 360 - a
+
+      if (right <= left) right
+      else -left // On donne un angle négatif s'il faut tourner à gauche
+    }
+
+    def angleTo(p: Pos) = {
+      import pos._
+      val d = dist2(p)
+      val dx = (p.x - x) / sqrt(d)
+      val dy = (p.y - y) / d
+
+      val a = acos(dx) * 180 / Pi
+
+      // Si le point qu'on veut est en dessus de nous, il faut décaler l'angle pour qu'il soit correct.
+      if (dy < 0) 360.0 - a
+      else a
+    }
+
+    // L'opérateur % est lent. Si on peut l'éviter, c'est mieux.
+    @inline private def fastMod360(a: Double) =
+      if (a >= 360.0) a - 360.0
+      else if (a < 0.0) a + 360.0
+      else a
+
+    // nouvel angle quand on essaie de viser p en partant de angle
+    def rotateTo(p: Pos) = {
+      val a = deltaAngleToFace(p)
+
+      // On ne peut pas tourner de plus de 18° en un seul tour
+      val b = angle + (if (a > MAX_ROTATION) MAX_ROTATION
+      else if (a < -MAX_ROTATION) -MAX_ROTATION
+      else a)
+      copy(angle = fastMod360(b))
+    }
+  }
 
   def sqr(x: Double) = x * x
 
