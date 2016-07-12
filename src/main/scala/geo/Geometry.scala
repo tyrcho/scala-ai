@@ -25,9 +25,14 @@ object Geometry {
         Pos((da * c1 - db * c2) / det, (da * c2 + db * c1) / det)
       else Pos(x, y)
     }
+
+    def round = Pos(x.toInt, y.toInt)
+
   }
 
   val MAX_ROTATION = 18
+  val MAX_THRUST = 200
+  val FRICTION = 0.85
   // angles
   val EAST = 0
   val SOUTH = 90
@@ -38,6 +43,28 @@ object Geometry {
       pos: Pos = Pos(0, 0),
       speed: Pos = Pos(0, 0),
       angle: Double = 0) {
+
+    def move(target: Pos, thrust: Int): Entity = {
+      rotateTo(target).
+        accel(thrust).
+        move(1).
+        endTurn
+    }
+
+    def endTurn = copy(
+      pos = pos.round,
+      speed = (speed * FRICTION).round)
+
+    def move(t: Double) =
+      copy(pos = pos + speed * t)
+
+    def accel(thrust: Int): Entity = {
+      val t = thrust min MAX_THRUST
+      val ra = angle.toRadians
+      copy(speed = speed + Pos(
+        x = cos(ra) * t,
+        y = sin(ra) * t))
+    }
 
     /*
      * Cette fonction renvoie l'angle que devrait avoir le pod pour faire face au point donné.
@@ -62,7 +89,7 @@ object Geometry {
       val dx = (p.x - x) / sqrt(d)
       val dy = (p.y - y) / d
 
-      val a = acos(dx) * 180 / Pi
+      val a = acos(dx).toDegrees
 
       // Si le point qu'on veut est en dessus de nous, il faut décaler l'angle pour qu'il soit correct.
       if (dy < 0) 360.0 - a

@@ -34,22 +34,42 @@ class GeometrySpec extends FlatSpec with Matchers with MockitoSugar with OneInst
     Pos(0, 1).closest(Pos(1, 2), Pos(2, 1)) shouldBe Pos(1, 2)
   }
 
+  val origin = Entity(pos = Pos(0, 0), angle = EAST)
+  val closeEast = Pos(5, 0)
+  val closeSouth = Pos(0, 5)
+  val closeWest = Pos(-5, 0)
+  val closeNorth = Pos(0, -5)
+
   "an entity" should "manage angles" in {
-    val origin = Entity(pos = Pos(0, 0), angle = EAST)
-    origin.angleTo(Pos(5, 0)) shouldBe EAST
-    origin.angleTo(Pos(0, 5)) shouldBe SOUTH
-    origin.angleTo(Pos(-5, 0)) shouldBe WEST
-    origin.angleTo(Pos(0, -5)) shouldBe NORTH
+    origin.angleTo(closeEast) shouldBe EAST
+    origin.angleTo(closeSouth) shouldBe SOUTH
+    origin.angleTo(closeWest) shouldBe WEST
+    origin.angleTo(closeNorth) shouldBe NORTH
 
-    origin.deltaAngleToFace(Pos(5, 0)) shouldBe 0
-    origin.deltaAngleToFace(Pos(0, 5)) shouldBe 90
-    origin.deltaAngleToFace(Pos(-5, 0)) shouldBe 180
-    origin.deltaAngleToFace(Pos(0, -5)) shouldBe -90
+    origin.deltaAngleToFace(closeEast) shouldBe 0
+    origin.deltaAngleToFace(closeSouth) shouldBe 90
+    origin.deltaAngleToFace(closeWest) shouldBe 180
+    origin.deltaAngleToFace(closeNorth) shouldBe -90
 
-    origin.rotateTo(Pos(5, 0)).angle shouldBe 0
-    origin.rotateTo(Pos(0, 5)).angle shouldBe MAX_ROTATION
-    origin.rotateTo(Pos(-5, 0)).angle shouldBe MAX_ROTATION
-    origin.rotateTo(Pos(0, -5)).angle shouldBe 360 - MAX_ROTATION
+    origin.rotateTo(closeEast).angle shouldBe 0
+    origin.rotateTo(closeSouth).angle shouldBe MAX_ROTATION
+    origin.rotateTo(closeWest).angle shouldBe MAX_ROTATION
+    origin.rotateTo(closeNorth).angle shouldBe 360 - MAX_ROTATION
+  }
+
+  it should "accelerate" in {
+    origin.accel(100).speed shouldBe Pos(100, 0)
+    val southSpeed = origin.copy(angle = SOUTH).accel(100).speed
+    southSpeed.x shouldBe 0.0 +- 0.0001
+    southSpeed.y shouldBe 100.0 +- 0.0001
+    origin.accel(300).speed shouldBe Pos(MAX_THRUST, 0)
+  }
+
+  it should "play a move" in {
+    val t1 = origin.move(closeSouth, 100)
+    t1.speed.norm shouldBe 100 * FRICTION +- 1
+    t1.angle shouldBe MAX_ROTATION
+    t1.pos shouldBe Pos(95, 30)
   }
 
 }
