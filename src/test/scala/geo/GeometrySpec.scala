@@ -11,6 +11,7 @@ import games.X
 import games.O
 import games.AlphaBetaTtt
 import Geometry._
+import math._
 
 @RunWith(classOf[JUnitRunner])
 class GeometrySpec extends FlatSpec with Matchers with MockitoSugar with OneInstancePerTest with BeforeAndAfter {
@@ -20,6 +21,15 @@ class GeometrySpec extends FlatSpec with Matchers with MockitoSugar with OneInst
     Pos(3, 5) - Pos(2, 2) shouldBe Pos(1, 3)
     Pos(2, 4) * 2 shouldBe Pos(4, 8)
     Pos(2, 4) / 2 shouldBe Pos(1, 2)
+
+    Pos(5, 10) dist2 Pos(10, 5) shouldBe 50
+    Pos(5, 10) dist Pos(10, 5) shouldBe sqrt(50)
+  }
+
+  it should "find the closest point to a line" in {
+    Pos(0, 0).closest(Pos(0, 2), Pos(2, 0)) shouldBe Pos(1, 1)
+    Pos(0, 0).closest(Pos(0, 2), Pos(0, 0)) shouldBe Pos(0, 0)
+    Pos(0, 1).closest(Pos(1, 2), Pos(2, 1)) shouldBe Pos(1, 2)
   }
 
 }
