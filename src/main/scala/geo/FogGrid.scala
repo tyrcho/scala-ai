@@ -11,13 +11,23 @@ case class FogGrid(
 
   def age(p: Pos) = ages(posToSpot(p))
 
-  def posToSpot(p: Pos) = {
+  def updated(seen: Iterable[Pos], range: Double) = {
+    def isSeen(p: Pos) = seen.exists(_.dist2(p) <= range * range)
+    val newAges = for {
+      (x, y) <- spots
+      p = spotToPos(x, y)
+      na = if (isSeen(p)) 0 else age(p) + 1
+    } yield (x, y) -> na
+    copy(ages = newAges.toMap)
+  }
+
+  private def posToSpot(p: Pos) = {
     val x = (p * scale / width).x.toInt
     val y = (p * scale / height).y.toInt
     (x, y)
   }
 
-  def spotToPos(x: Int, y: Int) =
+  private def spotToPos(x: Int, y: Int) =
     Pos(x * width / scale, y * height / scale)
 
   lazy val spots = for {
@@ -25,13 +35,9 @@ case class FogGrid(
     j <- 0 until scale
   } yield (i, j)
 
-  def updated(seen: Iterable[Pos], range: Double) = {
-    def isSeen(p: Pos) = seen.exists(_.dist2(p) <= range * range)
-    val newAges = for {
-      (x,y) <- spots
-      p = spotToPos(x,y)
-      na = if (isSeen(p)) 0 else age(p) + 1
-    } yield (x,y) -> na
-    copy(ages = newAges.toMap)
-  }
+  def olderThan(a: Int): Seq[Pos] = for {
+    (x, y) <- spots
+    age = ages(x, y)
+    if age > a
+  } yield spotToPos(x, y)
 }
