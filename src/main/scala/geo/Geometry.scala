@@ -114,6 +114,8 @@ object Geometry {
     }
   }
 
+ 
+
   def sqr(x: Double) = x * x
 
   /*
