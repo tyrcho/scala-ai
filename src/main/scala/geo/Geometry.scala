@@ -34,6 +34,8 @@ object Geometry {
       this + delta
     }
 
+    def symmetric(center: Pos) = center + center - this
+
     def round = Pos(x.toInt, y.toInt)
 
   }
