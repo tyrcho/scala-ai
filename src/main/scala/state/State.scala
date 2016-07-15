@@ -36,11 +36,11 @@ object State {
 
   def sequence[S, B](fs: Iterable[State[S, B]]): State[S, Vector[B]] = State(s => sequence_(fs, Vector(), s))
   private def sequence_[S, B](fs: Iterable[State[S, B]], out: Vector[B], nextS: S): (S, Vector[B]) =
-    fs match {
-      case Nil => (nextS, out)
-      case h :: t =>
-        val (s, a) = h(nextS)
-        sequence_(t, out :+ a, s)
+    if (fs.isEmpty) (nextS, out)
+    else {
+      val (h, t) = (fs.head, fs.tail)
+      val (s, a) = h(nextS)
+      sequence_(t, out :+ a, s)
     }
 
 }
