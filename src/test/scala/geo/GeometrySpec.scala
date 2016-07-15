@@ -34,6 +34,13 @@ class GeometrySpec extends FlatSpec with Matchers with MockitoSugar with OneInst
     Pos(0, 1).closest(Pos(1, 2), Pos(2, 1)) shouldBe Pos(1, 2)
   }
 
+  it should "move towards a direction" in {
+    Pos(0, 0).moveTo(Pos(0, 2), 2) shouldBe Pos(0, 2)
+    val Pos(x, y) = Pos(0, 0).moveTo(Pos(2, 2), 2)
+    x shouldBe sqrt(2) +- 0.00001
+    y shouldBe sqrt(2) +- 0.00001
+  }
+
   val origin = Entity(pos = Pos(0, 0), angle = EAST)
   val closeEast = Pos(5, 0)
   val closeSouth = Pos(0, 5)

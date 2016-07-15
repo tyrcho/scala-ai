@@ -9,6 +9,7 @@ object Geometry {
     def -(p: Pos) = Pos(x - p.x, y - p.y)
     def *(r: Double) = Pos(x * r, y * r)
     def /(r: Double) = Pos(x / r, y / r)
+    def scalar(p: Pos) = x * p.x + y * p.y
 
     def norm: Double = dist(Pos(0, 0))
     def dist(other: Pos): Double = sqrt(dist2(other))
@@ -24,6 +25,13 @@ object Geometry {
       if (det != 0)
         Pos((da * c1 - db * c2) / det, (da * c2 + db * c1) / det)
       else Pos(x, y)
+    }
+
+    def moveTo(tgt: Pos, distance: Int) = {
+      val direction = tgt - this
+      val distToTgt = sqrt(direction scalar direction)
+      val delta = direction * (distance / distToTgt)
+      this + delta
     }
 
     def round = Pos(x.toInt, y.toInt)
@@ -113,8 +121,6 @@ object Geometry {
       copy(angle = fastMod360(b))
     }
   }
-
- 
 
   def sqr(x: Double) = x * x
 
