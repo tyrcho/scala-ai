@@ -35,6 +35,9 @@ case class Grid(width: Int, height: Int) {
 
   type Path = List[Point]
 
+  def path(from: Point, to: Point, validMoves: Point => Iterable[Point]) =
+    pathImpl(List((from, Nil)), Set.empty, validMoves, _ == to)
+
   @tailrec
   final def pathImpl(
     toExplore: List[(Point, Path)],
