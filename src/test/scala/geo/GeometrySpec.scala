@@ -7,9 +7,6 @@ import org.scalatest.OneInstancePerTest
 import org.scalatest.FlatSpec
 import org.scalatest.Matchers
 import org.scalatest.junit.JUnitRunner
-import games.X
-import games.O
-import games.AlphaBetaTtt
 import Geometry._
 import math._
 
