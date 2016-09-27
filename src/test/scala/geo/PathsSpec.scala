@@ -35,4 +35,39 @@ class PathsSpec extends FlatSpec with Matchers with MockitoSugar with OneInstanc
       Point(2, 3), Point(1, 3), Point(0, 3)))
   }
 
+  "all paths" should "find some paths" in {
+    val g = Grid(3, 3)
+    import g.Point
+    def validMoves(p: Point, t: Int) = p.neighbours.toSet - p
+    val path = g.allPaths(Point(0, 0), validMoves, 1)
+    path shouldBe List(List(Point(1, 0)), List(Point(0, 1)))
+  }
+
+  "all paths" should "find some paths with more depth" in {
+    val g = Grid(3, 3)
+    import g.Point
+    def validMoves(p: Point, t: Int) = p.neighbours.toSet - p
+    val path = g.allPaths(Point(0, 0), validMoves, 2)
+    path shouldBe List(
+      List(Point(2, 0), Point(1, 0)),
+      List(Point(1, 1), Point(0, 1)),
+      List(Point(0, 2), Point(0, 1)),
+      List(Point(1, 0)),
+      List(Point(0, 1)))
+  }
+
+  "all paths" should "find avoid obstacles" in {
+    // .X.
+    // ...
+    // ...
+    val g = Grid(3, 3)
+    import g.Point
+    def validMoves(p: Point, t: Int) = p.neighbours.toSet - p - Point(1,0)
+    val path = g.allPaths(Point(0, 0), validMoves, 2)
+    path shouldBe List(
+      List(Point(1, 1), Point(0, 1)),
+      List(Point(0, 2), Point(0, 1)),
+      List(Point(0, 1)))
+  }
+
 }
