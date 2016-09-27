@@ -85,10 +85,51 @@ case class Grid(width: Int, height: Int) {
     pathImpl(List((from, Nil)), Set.empty, validMoves, _ == to)
   }
 
-  //  def path(from: Point, to: Cell) =
-  //    pathImpl(List((from, Nil)), Set.empty, data.get(_) == Some(to))
-  //
-  //  def path(from: Point, test: Cell => Boolean) =
-  //    pathImpl(List((from, Nil)), Set.empty, p => data.get(p).map(test).getOrElse(false))
+  def destroyNextTurn(bombs: Set[Bomb], obstacles: Set[Point]): Set[Point] = {
+
+    def destroyPointsOnDirection(bomb: Bomb, direction: Direction): Set[Point] = {
+
+      @tailrec
+      def destroyPointsOnDirectionRec(range: Int, destroyPoints: List[Point]): List[Point] = {
+        if (range == 0) destroyPoints.filter(contains)
+        else {
+          val nextPoint = direction(destroyPoints.last)
+          if (nextPoint.equals(destroyPoints.last) || obstacles.contains(nextPoint))
+            destroyPoints
+          else if (bombs.exists(b => b.position.equals(nextPoint)))
+            destroyPoints :+ nextPoint
+          else
+            destroyPointsOnDirectionRec(range - 1, destroyPoints :+ nextPoint)
+        }
+      }
+
+      destroyPointsOnDirectionRec(bomb.range, List(bomb.position)).toSet
+
+    }
+
+    @tailrec
+    def destroyNextTurnRec(bombsLeft: Set[Bomb], bombsTreated: Set[Bomb], destroyPoints: Set[Point]): Set[Point] = {
+      if (bombsLeft.isEmpty) destroyPoints
+      else {
+        val bomb = bombsLeft.head
+        val newDestroyPoints: Set[Point] = List(N, S, W, E).foldLeft(Set.empty[Point]) {
+          case (points: Set[Point], direction: Direction) => points ++ destroyPointsOnDirection(bomb, direction)
+        }
+
+        val newDestroyBombs: Set[Bomb] = bombs.filter(bomb => newDestroyPoints.contains(bomb.position) && !bombsLeft.contains(bomb) && !bombsTreated.contains(bomb))
+
+        destroyNextTurnRec(bombsLeft - bomb ++ newDestroyBombs, bombsTreated + bomb, destroyPoints ++ newDestroyPoints)
+      }
+    }
+
+    destroyNextTurnRec(bombs.filter(bomb => bomb.aboutToExplode), Set.empty[Bomb], Set.empty[Point])
+
+  }
+}
+
+case class Bomb(position: Point, range: Int, nbTurns: Int) {
+
+  def aboutToExplode: Boolean = nbTurns == 1
 
 }
+

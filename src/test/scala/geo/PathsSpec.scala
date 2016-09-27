@@ -35,7 +35,7 @@ class PathsSpec extends FlatSpec with Matchers with MockitoSugar with OneInstanc
 
   "all paths" should "find some paths" in {
     val g = Grid(3, 3)
-    def validMoves(p: Point, t: Int) = g.neighbours(p).toSet 
+    def validMoves(p: Point, t: Int) = g.neighbours(p).toSet
     val path = g.allPaths(Point(0, 0), validMoves, 1)
     path shouldBe List(List(Point(1, 0)), List(Point(0, 1)))
   }
@@ -57,7 +57,7 @@ class PathsSpec extends FlatSpec with Matchers with MockitoSugar with OneInstanc
     // ...
     // ...
     val g = Grid(3, 3)
-    def validMoves(p: Point, t: Int) = g.neighbours(p).toSet - Point(1,0)
+    def validMoves(p: Point, t: Int) = g.neighbours(p).toSet - Point(1, 0)
     val path = g.allPaths(Point(0, 0), validMoves, 2)
     path shouldBe List(
       List(Point(1, 1), Point(0, 1)),
@@ -65,4 +65,67 @@ class PathsSpec extends FlatSpec with Matchers with MockitoSugar with OneInstanc
       List(Point(0, 1)))
   }
 
+  "a bomb explosition" should "blast points in its range" in {
+    val g = Grid(5, 5)
+    import g._
+    val bombs = Set(Bomb(Point(1, 2), 2, 1))
+    val obstacles = Set.empty[Point]
+    // .....
+    // .....
+    // .B...
+    // .....
+    // .....
+    g.destroyNextTurn(bombs, obstacles) shouldBe Set(Point(1, 0), Point(1, 1), Point(1, 2), Point(1, 3), Point(1, 4), Point(0, 2), Point(2, 2), Point(3, 2))
+  }
+
+  "a bomb explosition" should "not destroy obstacles and points behind their" in {
+    val g = Grid(5, 5)
+    import g._
+    val bombs = Set(Bomb(Point(1, 2), 2, 1))
+    val obstacles = Set(Point(1, 0), Point(2, 2))
+    // .X...
+    // .....
+    // .BX..
+    // .....
+    // .....
+    g.destroyNextTurn(bombs, obstacles) shouldBe Set(Point(1, 1), Point(1, 2), Point(1, 3), Point(1, 4), Point(0, 2))
+  }
+
+  "a bomb" should "not explode before its turn" in {
+    val g = Grid(5, 5)
+    import g._
+    val bombs = Set(Bomb(Point(1, 2), 2, 1), Bomb(Point(2, 3), 2, 5))
+    val obstacles = Set(Point(1, 0), Point(2, 2))
+    // .X...
+    // .....
+    // .BX..
+    // ..B..
+    // .....
+    g.destroyNextTurn(bombs, obstacles) shouldBe Set(Point(1, 1), Point(1, 2), Point(1, 3), Point(1, 4), Point(0, 2))
+  }
+
+  "a bomb explosition" should "trigger other bomb" in {
+    val g = Grid(5, 5)
+    val bombs = Set(Bomb(Point(1, 2), 2, 1), Bomb(Point(1, 3), 2, 8))
+    val obstacles = Set(Point(1, 0), Point(2, 2))
+    // .X...
+    // .....
+    // .BX..
+    // .B...
+    // .....
+    g.destroyNextTurn(bombs, obstacles) shouldBe Set(Point(1, 1), Point(1, 2), Point(1, 3), Point(1, 4), Point(0, 2), Point(0, 3), Point(2, 3), Point(3, 3))
+  }
+
+  "trigger an other bomb" should "reduce the range" in {
+    val g = Grid(5, 6)
+    val bombs = Set(Bomb(Point(1, 2), 3, 1), Bomb(Point(1, 3), 1, 8))
+    val obstacles = Set(Point(1, 0), Point(2, 2))
+    // .X...
+    // .....
+    // .BX..
+    // .B...
+    // .....
+    // .....
+    g.destroyNextTurn(bombs, obstacles) shouldBe Set(Point(1, 1), Point(1, 2), Point(1, 3), Point(1, 4), Point(0, 2), Point(0, 3), Point(2, 3))
+  }
 }
