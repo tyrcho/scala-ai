@@ -14,8 +14,7 @@ class PathsSpec extends FlatSpec with Matchers with MockitoSugar with OneInstanc
 
   "a Path" should "be short" in {
     val g = Grid(4, 4)
-    import g.Point
-    def validMoves(p: Point) = Seq(p.N, p.S, p.E, p.W)
+    def validMoves(p: Point) = g.neighbours(p)
     val path = g.path(Point(0, 0), Point(3, 0), validMoves)
     path shouldBe Some(List(Point(1, 0), Point(2, 0), Point(3, 0)))
   }
@@ -26,8 +25,7 @@ class PathsSpec extends FlatSpec with Matchers with MockitoSugar with OneInstanc
     // XXX.
     // XXX.
     // ....
-    import g.Point
-    def validMoves(p: Point) = Seq(p.N, p.S, p.E, p.W).filterNot(p => (p.y == 1 || p.y == 2) && p.x < 3)
+    def validMoves(p: Point) = g.neighbours(p).filterNot(p => (p.y == 1 || p.y == 2) && p.x < 3)
     val path = g.path(Point(0, 0), Point(0, 3), validMoves)
     path shouldBe Some(List(
       Point(1, 0), Point(2, 0), Point(3, 0),
@@ -37,16 +35,14 @@ class PathsSpec extends FlatSpec with Matchers with MockitoSugar with OneInstanc
 
   "all paths" should "find some paths" in {
     val g = Grid(3, 3)
-    import g.Point
-    def validMoves(p: Point, t: Int) = p.neighbours.toSet - p
+    def validMoves(p: Point, t: Int) = g.neighbours(p).toSet 
     val path = g.allPaths(Point(0, 0), validMoves, 1)
     path shouldBe List(List(Point(1, 0)), List(Point(0, 1)))
   }
 
   "all paths" should "find some paths with more depth" in {
     val g = Grid(3, 3)
-    import g.Point
-    def validMoves(p: Point, t: Int) = p.neighbours.toSet - p
+    def validMoves(p: Point, t: Int) = g.neighbours(p)
     val path = g.allPaths(Point(0, 0), validMoves, 2)
     path shouldBe List(
       List(Point(2, 0), Point(1, 0)),
@@ -61,8 +57,7 @@ class PathsSpec extends FlatSpec with Matchers with MockitoSugar with OneInstanc
     // ...
     // ...
     val g = Grid(3, 3)
-    import g.Point
-    def validMoves(p: Point, t: Int) = p.neighbours.toSet - p - Point(1,0)
+    def validMoves(p: Point, t: Int) = g.neighbours(p).toSet - Point(1,0)
     val path = g.allPaths(Point(0, 0), validMoves, 2)
     path shouldBe List(
       List(Point(1, 1), Point(0, 1)),

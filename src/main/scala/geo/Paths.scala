@@ -2,29 +2,25 @@ package geo
 
 import scala.annotation.tailrec
 
+case class Point(x: Int, y: Int) {
+  def N = Point(x, y - 1)
+  def S = Point(x, y + 1)
+  def E = Point(x + 1, y)
+  def W = Point(x - 1, y)
+
+  def dist(o: Point) =
+    (o.x - x) * (o.x - x) + (o.y - y) * (o.y - y)
+
+  def closer(ref: Point)(o: Point) =
+    dist(ref) < o.dist(ref)
+}
+
 case class Grid(width: Int, height: Int) {
 
-  case class Point(x: Int, y: Int) {
-    def N = Point(x, y - 1).check
-    def S = Point(x, y + 1).check
-    def E = Point(x + 1, y).check
-    def W = Point(x - 1, y).check
+  def contains(p: Point): Boolean =
+    p.x >= 0 && p.y >= 0 && p.x < width && p.y < height
 
-    def check: Point =
-      if (x < 0) Point(0, y).check
-      else if (x >= width) Point(width - 1, y).check
-      else if (y < 0) Point(x, 0).check
-      else if (y >= height) Point(x, height - 1).check
-      else this
-
-    def neighbours = List(N, S, E, W)
-
-    def dist(o: Point) =
-      (o.x - x) * (o.x - x) + (o.y - y) * (o.y - y)
-
-    def closer(ref: Point)(o: Point) =
-      dist(ref) < o.dist(ref)
-  }
+  def neighbours(p: Point) = List(p.N, p.S, p.E, p.W).filter(contains)
 
   type Direction = Point => Point
 
@@ -44,7 +40,7 @@ case class Grid(width: Int, height: Int) {
       maxDepth: Int,
       acc: List[Path] = Nil): List[Path] = toExplore match {
       case Nil => acc
-      case (path, le) :: tail if !explored(path.head) && le <= maxDepth  =>
+      case (path, le) :: tail if !explored(path.head) && le <= maxDepth =>
         val newAcc = if (le > 0) path.init :: acc else acc
         val newPoints = for {
           m <- validMoves(path.head, path.length)
