@@ -65,12 +65,11 @@ class PathsSpec extends FlatSpec with Matchers with MockitoSugar with OneInstanc
       List(Point(0, 1)))
   }
 
-  "a bomb explosition" should "blast points in its range" in {
+  "a bomb" should "blast points in its range including obstacles" in {
     val g = Grid(5, 5)
-    import g._
     val bombs = Set(Bomb(Point(1, 2), 2, 1))
-    val obstacles = Set.empty[Point]
-    // .....
+    val obstacles = Set(Point(1, 0))
+    // .X...
     // .....
     // .B...
     // .....
@@ -78,7 +77,7 @@ class PathsSpec extends FlatSpec with Matchers with MockitoSugar with OneInstanc
     g.destroyNextTurn(bombs, obstacles) shouldBe Set(Point(1, 0), Point(1, 1), Point(1, 2), Point(1, 3), Point(1, 4), Point(0, 2), Point(2, 2), Point(3, 2))
   }
 
-  "a bomb explosition" should "not destroy obstacles and points behind their" in {
+  "a bomb" should "not destroy behind  obstacles" in {
     val g = Grid(5, 5)
     import g._
     val bombs = Set(Bomb(Point(1, 2), 2, 1))
@@ -88,7 +87,7 @@ class PathsSpec extends FlatSpec with Matchers with MockitoSugar with OneInstanc
     // .BX..
     // .....
     // .....
-    g.destroyNextTurn(bombs, obstacles) shouldBe Set(Point(1, 1), Point(1, 2), Point(1, 3), Point(1, 4), Point(0, 2))
+    g.destroyNextTurn(bombs, obstacles) shouldBe Set(Point(1, 1), Point(1, 2), Point(1, 3), Point(1, 4), Point(0, 2)) ++ obstacles
   }
 
   "a bomb" should "not explode before its turn" in {
@@ -101,10 +100,10 @@ class PathsSpec extends FlatSpec with Matchers with MockitoSugar with OneInstanc
     // .BX..
     // ..B..
     // .....
-    g.destroyNextTurn(bombs, obstacles) shouldBe Set(Point(1, 1), Point(1, 2), Point(1, 3), Point(1, 4), Point(0, 2))
+    g.destroyNextTurn(bombs, obstacles) shouldBe Set(Point(1, 1), Point(1, 2), Point(1, 3), Point(1, 4), Point(0, 2)) ++ obstacles
   }
 
-  "a bomb explosition" should "trigger other bomb" in {
+  "a bomb explosion" should "trigger other bomb" in {
     val g = Grid(5, 5)
     val bombs = Set(Bomb(Point(1, 2), 2, 1), Bomb(Point(1, 3), 2, 8))
     val obstacles = Set(Point(1, 0), Point(2, 2))
@@ -113,7 +112,7 @@ class PathsSpec extends FlatSpec with Matchers with MockitoSugar with OneInstanc
     // .BX..
     // .B...
     // .....
-    g.destroyNextTurn(bombs, obstacles) shouldBe Set(Point(1, 1), Point(1, 2), Point(1, 3), Point(1, 4), Point(0, 2), Point(0, 3), Point(2, 3), Point(3, 3))
+    g.destroyNextTurn(bombs, obstacles) shouldBe Set(Point(1, 1), Point(1, 2), Point(1, 3), Point(1, 4), Point(0, 2), Point(0, 3), Point(2, 3), Point(3, 3)) ++ obstacles
   }
 
   "trigger an other bomb" should "reduce the range" in {
@@ -126,6 +125,23 @@ class PathsSpec extends FlatSpec with Matchers with MockitoSugar with OneInstanc
     // .B...
     // .....
     // .....
-    g.destroyNextTurn(bombs, obstacles) shouldBe Set(Point(1, 1), Point(1, 2), Point(1, 3), Point(1, 4), Point(0, 2), Point(0, 3), Point(2, 3))
+    g.destroyNextTurn(bombs, obstacles) shouldBe Set(Point(1, 1), Point(1, 2), Point(1, 3), Point(1, 4), Point(0, 2), Point(0, 3), Point(2, 3)) ++ obstacles
+  }
+
+  "2 bombs" should "detonate one after the other" in {
+    val g = Grid(5, 6)
+    val bombs = Set(Bomb(Point(1, 2), 3, 1), Bomb(Point(2, 3), 3, 2))
+    val walls = Set(Point(1, 0), Point(2, 2))
+    val boxes = Set(Point(1, 3))
+    // .X...
+    // .....
+    // .BX..
+    // .oB..
+    // .....
+    // .....
+    g.destroyBeforeTurn(1, bombs, walls, boxes) shouldBe Set(Point(1, 1), Point(1, 2), Point(1, 3), Point(0, 2))
+    g.destroyBeforeTurn(2, bombs, walls, boxes) shouldBe
+      Set(Point(1, 1), Point(1, 2), Point(1, 3), Point(0, 2)) ++
+      Set(Point(0, 3), Point(2, 3), Point(3, 3), Point(4, 3), Point(2, 4), Point(2, 5))
   }
 }

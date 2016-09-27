@@ -1,6 +1,7 @@
 package geo
 
 import scala.annotation.tailrec
+import math._
 
 case class Point(x: Int, y: Int) {
   def N = Point(x, y - 1)
@@ -8,11 +9,15 @@ case class Point(x: Int, y: Int) {
   def E = Point(x + 1, y)
   def W = Point(x - 1, y)
 
-  def dist(o: Point) =
-    (o.x - x) * (o.x - x) + (o.y - y) * (o.y - y)
+  def dist(other: Point): Double = sqrt(dist2(other))
+  def dist2(other: Point): Double = sqr(this.x - other.x) + sqr(this.y - other.y)
 
   def closer(ref: Point)(o: Point) =
     dist(ref) < o.dist(ref)
+
+  override def toString = s"$x $y"
+
+  def sqr(x: Int) = x * x
 }
 
 case class Grid(width: Int, height: Int) {
@@ -30,6 +35,8 @@ case class Grid(width: Int, height: Int) {
   val W: Direction = _.W
 
   type Path = List[Point]
+
+  def border(p: Point) = p.x == 0 || p.y == 0 || p.x == width - 1 || p.y == height - 1
 
   def allPaths(from: Point, validMoves: (Point, Int) => Iterable[Point], maxDepth: Int): Iterable[Path] = {
     @tailrec
@@ -55,7 +62,7 @@ case class Grid(width: Int, height: Int) {
     allPathsImpl(List((List(from), 0)), Set.empty, validMoves, maxDepth)
   }
 
-  def path(from: Point, to: Point, validMoves: Point => Iterable[Point]) = {
+  def path(from: Point, to: Point, validMoves: Point => Iterable[Point], maxDepth: Int = 10) = {
     @tailrec
     def pathImpl(
       toExplore: List[(Point, Path)],
@@ -82,24 +89,35 @@ case class Grid(width: Int, height: Int) {
           pathImpl(t ++ newPoints, explored + p, validMoves, targetCondition, maxDepth)
       }
 
-    pathImpl(List((from, Nil)), Set.empty, validMoves, _ == to)
+    pathImpl(List((from, Nil)), Set.empty, validMoves, _ == to, maxDepth)
   }
+
+  def destroyBeforeTurn(turn: Int, bombs: Set[Bomb], walls: Set[Point], boxes: Set[Point]): Set[Point] =
+    if (turn == 0) Set.empty
+    else {
+      val previouslyDestroyed = destroyBeforeTurn(turn - 1, bombs, walls, boxes)
+      val remainingBombs = bombs.collect {
+        case b if !previouslyDestroyed(b.position) => b.copy(nbTurns = b.nbTurns + 1 - turn)
+      }
+      val remainingBoxes = boxes -- previouslyDestroyed
+      previouslyDestroyed ++ destroyNextTurn(remainingBombs, walls ++ remainingBoxes) -- walls
+    }
 
   def destroyNextTurn(bombs: Set[Bomb], obstacles: Set[Point]): Set[Point] = {
 
     def destroyPointsOnDirection(bomb: Bomb, direction: Direction): Set[Point] = {
 
       @tailrec
-      def destroyPointsOnDirectionRec(range: Int, destroyPoints: List[Point]): List[Point] = {
-        if (range == 0) destroyPoints.filter(contains)
+      def destroyPointsOnDirectionRec(range: Int, acc: List[Point]): List[Point] = {
+        if (range == 0) acc.filter(contains)
         else {
-          val nextPoint = direction(destroyPoints.last)
-          if (nextPoint.equals(destroyPoints.last) || obstacles.contains(nextPoint))
-            destroyPoints
-          else if (bombs.exists(b => b.position.equals(nextPoint)))
-            destroyPoints :+ nextPoint
+          val nextPoint = direction(acc.last)
+          if (nextPoint.equals(acc.last))
+            acc
+          else if (obstacles(nextPoint) || bombs.exists(_.position == nextPoint))
+            acc :+ nextPoint
           else
-            destroyPointsOnDirectionRec(range - 1, destroyPoints :+ nextPoint)
+            destroyPointsOnDirectionRec(range - 1, acc :+ nextPoint)
         }
       }
 
@@ -112,11 +130,11 @@ case class Grid(width: Int, height: Int) {
       if (bombsLeft.isEmpty) destroyPoints
       else {
         val bomb = bombsLeft.head
-        val newDestroyPoints: Set[Point] = List(N, S, W, E).foldLeft(Set.empty[Point]) {
-          case (points: Set[Point], direction: Direction) => points ++ destroyPointsOnDirection(bomb, direction)
+        val newDestroyPoints = List(N, S, W, E).foldLeft(Set.empty[Point]) {
+          case (points, direction) => points ++ destroyPointsOnDirection(bomb, direction)
         }
 
-        val newDestroyBombs: Set[Bomb] = bombs.filter(bomb => newDestroyPoints.contains(bomb.position) && !bombsLeft.contains(bomb) && !bombsTreated.contains(bomb))
+        val newDestroyBombs = bombs.filter(bomb => newDestroyPoints.contains(bomb.position) && !bombsLeft.contains(bomb) && !bombsTreated.contains(bomb))
 
         destroyNextTurnRec(bombsLeft - bomb ++ newDestroyBombs, bombsTreated + bomb, destroyPoints ++ newDestroyPoints)
       }
@@ -131,5 +149,6 @@ case class Bomb(position: Point, range: Int, nbTurns: Int) {
 
   def aboutToExplode: Boolean = nbTurns == 1
 
+  def nextTurn = copy(nbTurns = nbTurns - 1)
 }
 
