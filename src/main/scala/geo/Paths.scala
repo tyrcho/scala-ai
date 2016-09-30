@@ -36,12 +36,12 @@ case class Grid(width: Int, height: Int) {
 
   type Path = List[Point]
 
-  def reachableCross(p: Point, range: Int, stops: Point => Boolean) = {
+  def reachableCross(p: Point, range: Int, stops: Point => Boolean): Set[Point] = {
     @tailrec
-    def reachableLine(from: Point, dir: Point => Point, range: Int, acc: List[Point] = Nil): List[Point] =
-      if (range == 0) acc
-      else if (stops(from)) from :: acc
-      else reachableLine(dir(from), dir, range - 1, from :: acc)
+    def reachableLine(from: Point, dir: Point => Point, range: Int, acc: Set[Point] = Set.empty): Set[Point] =
+      if (range < 0) acc
+      else if (stops(from) || !contains(dir(from))) acc + from
+      else reachableLine(dir(from), dir, range - 1, acc + from)
 
     reachableLine(p, _.N, range) ++
       reachableLine(p, _.S, range) ++

@@ -154,4 +154,20 @@ class PathsSpec extends FlatSpec with Matchers with MockitoSugar with OneInstanc
     def validMoves(p: Point) = g.neighbours(p).toSet -- obstacles
     g.reachableArea(Point(0, 0), validMoves) shouldBe Set(Point(0, 0), Point(0, 1), Point(0, 2), Point(1, 0), Point(2, 0))
   }
+
+  "reachable cross" should "work in the corner" in {
+    val g = Grid(3, 3)
+    // SX.
+    // ...
+    // ...
+    def stops(p: Point) = p == Point(1, 0)
+    g.reachableCross(Point(0, 0), 2, stops) shouldBe Set(Point(0, 0), Point(0, 1), Point(1, 0), Point(0, 2))
+  }
+
+  "reachable cross" should "work in the center" in {
+    val g = Grid(5, 5)
+    def stops(p: Point) = false
+    g.reachableCross(Point(3, 3), 1, stops) shouldBe Set(Point(3, 3), Point(3, 4), Point(3, 2), Point(2, 3), Point(4, 3))
+  }
+
 }
