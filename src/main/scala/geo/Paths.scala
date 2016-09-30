@@ -36,6 +36,18 @@ case class Grid(width: Int, height: Int) {
 
   type Path = List[Point]
 
+  def reachableArea(from: Point, validMoves: (Point) => Iterable[Point]): Set[Point] = {
+
+    @tailrec
+    def reachRec(toExplore: Vector[Point], explored: Set[Point]): Set[Point] =
+      if (toExplore.isEmpty) explored
+      else {
+        val next = validMoves(toExplore.head).toSet -- explored
+        reachRec(toExplore.tail ++ next, explored ++ next)
+      }
+    reachRec(Vector(from), Set.empty)
+  }
+
   def border(p: Point) = p.x == 0 || p.y == 0 || p.x == width - 1 || p.y == height - 1
 
   def allPaths(from: Point, validMoves: (Point, Int) => Iterable[Point], maxDepth: Int): Iterable[Path] = {

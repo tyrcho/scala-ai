@@ -144,4 +144,14 @@ class PathsSpec extends FlatSpec with Matchers with MockitoSugar with OneInstanc
       Set(Point(1, 1), Point(1, 2), Point(1, 3), Point(0, 2)) ++
       Set(Point(0, 3), Point(2, 3), Point(3, 3), Point(4, 3), Point(2, 4), Point(2, 5))
   }
+
+  "reachable area" should "find relevant points" in {
+    // S..
+    // .XX
+    // .X.
+    val g = Grid(3, 3)
+    val obstacles = Set(Point(1, 1), Point(1, 2), Point(2, 1))
+    def validMoves(p: Point) = g.neighbours(p).toSet -- obstacles
+    g.reachableArea(Point(0, 0), validMoves) shouldBe Set(Point(0, 0), Point(0, 1), Point(0, 2), Point(1, 0), Point(2, 0))
+  }
 }
