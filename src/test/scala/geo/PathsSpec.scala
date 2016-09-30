@@ -166,7 +166,7 @@ class PathsSpec extends FlatSpec with Matchers with MockitoSugar with OneInstanc
 
   "reachable cross" should "work in the center" in {
     val g = Grid(5, 5)
-    def stops(p: Point) = false
+    def stops(p: Point) = p == Point(3, 3)
     g.reachableCross(Point(3, 3), 1, stops) shouldBe Set(Point(3, 3), Point(3, 4), Point(3, 2), Point(2, 3), Point(4, 3))
   }
 

@@ -40,7 +40,7 @@ case class Grid(width: Int, height: Int) {
     @tailrec
     def reachableLine(from: Point, dir: Point => Point, range: Int, acc: Set[Point] = Set.empty): Set[Point] =
       if (range < 0) acc
-      else if (stops(from) || !contains(dir(from))) acc + from
+      else if ((stops(from) && from != p) || !contains(dir(from))) acc + from
       else reachableLine(dir(from), dir, range - 1, acc + from)
 
     reachableLine(p, _.N, range) ++
