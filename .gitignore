@@ -1,7 +1,7 @@
 target/
 .settings/
 
-.cache
+.cache*
 
 .classpath
 .project
