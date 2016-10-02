@@ -67,24 +67,23 @@ case class Grid(width: Int, height: Int) {
     @tailrec
     def allPathsImpl(
       toExplore: List[(Path, Int)],
-      explored: Set[Point],
-      validMoves: (Point, Int) => Iterable[Point],
-      maxDepth: Int,
+      explored: Set[(Point, Int)],
       acc: List[Path] = Nil): List[Path] = toExplore match {
       case Nil => acc
-      case (path, le) :: tail if !explored(path.head) && le <= maxDepth =>
+      case (path, le) :: tail if explored((path.head, le)) => allPathsImpl(tail, explored, acc)
+      case (path, le) :: tail =>
         val newAcc = if (le > 0) path.init :: acc else acc
-        val newPoints = for {
-          m <- validMoves(path.head, path.length)
-          //        if !tail.flatten.toSet(m)
-          if !explored(m)
-        } yield m
-        val newPaths = newPoints.map(po => (po :: path, le + 1)).toList
-        allPathsImpl(tail ++ newPaths, explored + path.head, validMoves, maxDepth, newAcc)
-      case p :: tail => allPathsImpl(tail, explored, validMoves, maxDepth, acc)
+        val newPoints =
+          if (le < maxDepth) for {
+            m <- validMoves(path.head, path.length)
+            if !explored((m, le + 1))
+          } yield m
+          else Nil
+        val newPaths = newPoints.map(po => (po :: path, le + 1))
+        allPathsImpl(tail ++ newPaths, explored + (path.head -> le), newAcc)
     }
 
-    allPathsImpl(List((List(from), 0)), Set.empty, validMoves, maxDepth)
+    allPathsImpl(List((List(from), 0)), Set.empty)
   }
 
   def path(from: Point, to: Point, validMoves: Point => Iterable[Point], maxDepth: Int = 10) = {

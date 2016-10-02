@@ -42,27 +42,30 @@ class PathsSpec extends FlatSpec with Matchers with MockitoSugar with OneInstanc
 
   "all paths" should "find some paths with more depth" in {
     val g = Grid(3, 3)
-    def validMoves(p: Point, t: Int) = g.neighbours(p)
+    def validMoves(p: Point, t: Int) = p :: g.neighbours(p)
     val path = g.allPaths(Point(0, 0), validMoves, 2)
-    path shouldBe List(
-      List(Point(2, 0), Point(1, 0)),
-      List(Point(1, 1), Point(0, 1)),
-      List(Point(0, 2), Point(0, 1)),
-      List(Point(1, 0)),
-      List(Point(0, 1)))
+    path should contain(List(Point(2, 0), Point(1, 0)))
+    path should contain(List(Point(0, 0), Point(0, 0)))
   }
 
-  "all paths" should "find avoid obstacles" in {
+  it should "find avoid obstacles" in {
     // .X.
     // ...
     // ...
     val g = Grid(3, 3)
     def validMoves(p: Point, t: Int) = g.neighbours(p).toSet - Point(1, 0)
     val path = g.allPaths(Point(0, 0), validMoves, 2)
-    path shouldBe List(
-      List(Point(1, 1), Point(0, 1)),
-      List(Point(0, 2), Point(0, 1)),
-      List(Point(0, 1)))
+    path should contain(List(Point(1, 1), Point(0, 1)))
+    path should contain(List(Point(0, 0), Point(0, 1)))
+    path should contain(List(Point(0, 2), Point(0, 1)))
+  }
+
+  "all paths" should "ignore duplicate paths to the same pos at same time" in {
+    val g = Grid(13, 11)
+    def avoidWalls(p: Point, i: Int) = p :: g.neighbours(p).filterNot(q => q.x % 2 == 1 && q.y % 2 == 1)
+    g.allPaths(Point(0, 0), avoidWalls, 1).size shouldBe 3
+    g.allPaths(Point(0, 0), avoidWalls, 2) should have size 8
+    g.allPaths(Point(0, 0), avoidWalls, 12) should have size 360
   }
 
   "a bomb" should "blast points in its range including obstacles" in {
