@@ -27,12 +27,14 @@ object Geometry {
       else Pos(x, y)
     }
 
-    def moveTo(tgt: Pos, distance: Int) = {
-      val direction = tgt - this
-      val distToTgt = sqrt(direction scalar direction)
-      val delta = direction * (distance / distToTgt)
-      this + delta
-    }
+    def moveTo(tgt: Pos, distance: Double) =
+      if (dist(tgt) <= distance) tgt
+      else {
+        val direction = tgt - this
+        val distToTgt = sqrt(direction scalar direction)
+        val delta = direction * (distance / distToTgt)
+        this + delta
+      }.round
 
     def symmetric(center: Pos) = center + center - this
 
