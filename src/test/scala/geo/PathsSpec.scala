@@ -54,10 +54,10 @@ class PathsSpec extends FlatSpec with Matchers with MockitoSugar with OneInstanc
     // ...
     val g = Grid(3, 3)
     def validMoves(p: Point, t: Int) = g.neighbours(p).toSet - Point(1, 0)
-    val path = g.allPaths(Point(0, 0), validMoves, 2)
-    path should contain(List(Point(1, 1), Point(0, 1)))
-    path should contain(List(Point(0, 0), Point(0, 1)))
-    path should contain(List(Point(0, 2), Point(0, 1)))
+    val paths = g.allPaths(Point(0, 0), validMoves, 2)
+    paths should contain(List(Point(1, 1), Point(0, 1)))
+    paths should contain(List(Point(0, 0), Point(0, 1)))
+    paths should contain(List(Point(0, 2), Point(0, 1)))
   }
 
   "all paths" should "ignore duplicate paths to the same pos at same time" in {
