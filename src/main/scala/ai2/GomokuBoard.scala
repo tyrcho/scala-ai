@@ -18,6 +18,14 @@ case class GomokuBoard(
 
   def free: Set[Pos] = quickFree.getOrElse(allFree)
 
+  def toText: String = Seq.tabulate(height) { y =>
+    Seq.tabulate(width) { x =>
+      if (playedFalse(Pos(x, y))) 'F'
+      else if (playedTrue(Pos(x, y))) 'T'
+      else ' '
+    }.mkString
+  }.mkString("\n")
+
   def maxLength(player: Boolean) = {
     val played = if (player) playedTrue else playedFalse
 
@@ -28,11 +36,13 @@ case class GomokuBoard(
       else l
     }
 
-    val lengths = for {
-      d <- Directions.all
-      p <- played
-    } yield length(d, p, 1)
-    lengths.max
+    if (played.isEmpty) 0 else {
+      val lengths = for {
+        d <- Directions.all
+        p <- played
+      } yield length(d, p, 1)
+      lengths.max
+    }
   }
 
   private def allFree = (for {
