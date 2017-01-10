@@ -5,34 +5,50 @@ import scala.collection.mutable.ListBuffer
 object BackPack {
   def best[T](items: Seq[T], maxWeight: Int, weightFun: T => Int, valueFun: T => Int): Seq[T] = {
     //https://openclassrooms.com/courses/introduction-a-la-programmation-dynamique
-    var matrix = Array.fill(items.size, maxWeight)(0)
-    var j = 0
-    while (j < maxWeight) {
-      matrix(0)(j) = if (weightFun(items(0)) > j) 0 else valueFun(items(0))
-      j += 1
-    }
-    var i = 1
-    while (i < items.size) {
-      j = 0
-      while (j < maxWeight) {
-        var weight = weightFun(items(i))
-        matrix(i)(j) =
-          if (weight > j) matrix(i - 1)(j)
-          else math.max(matrix(i - 1)(j), matrix(i - 1)(j - weight) + valueFun(items(i)))
-        j += 1
+
+    def nextLine(line: Seq[Int], item: T): Seq[Int] = {
+      val itemWeight = weightFun(item)
+      val itemValue = valueFun(item)
+      Seq.tabulate(maxWeight) { c =>
+        val w = c + 1
+        val tooBig = itemWeight > w
+        val optimalWithoutItem = line(c)
+        if (tooBig) optimalWithoutItem
+        else if (w == itemWeight) optimalWithoutItem max itemValue
+        else {
+          val optimalWithItem = itemValue + line(c - itemWeight)
+          optimalWithoutItem max optimalWithItem
+        }
       }
-      i += 1
     }
-    i-=1
-    j-=1
-    val selection = ListBuffer.empty[T]
-    while (matrix(i)(j) == matrix(i - 1)(j)) i -= 1
-    while (j > 0) {
-      while (i > 0 && matrix(i)(j) == matrix(i - 1)(j)) i -= 1
-      j -= weightFun(items(i))
-      if (j > 0) selection += items(i)
-      i -= 1
+
+    val line0 = Seq.tabulate(maxWeight) { c =>
+      val itemWeight = weightFun(items(0))
+      val itemValue = valueFun(items(0))
+      val tooBig = itemWeight > c + 1
+      if (tooBig) 0 else itemValue
     }
-    selection.toSeq
+
+    val matrix = items.tail.scanLeft(line0) {
+      case (line, item) => nextLine(line, item)
+    }
+
+    def selectedItem(line: Int = items.length - 1, column: Int = maxWeight - 1, acc: Seq[T] = Seq.empty[T]): Seq[T] = {
+      if (line == 0) {
+        if (matrix(line)(column) == 0) {
+          acc
+        } else {
+          items(0) +: acc
+        }
+      } else {
+        if (matrix(line)(column) == matrix(line - 1)(column)) {
+          selectedItem(line - 1, column, acc)
+        } else {
+          selectedItem(line - 1, column - weightFun(items(line)), items(line) +: acc)
+        }
+      }
+    }
+
+    selectedItem()
   }
 }
