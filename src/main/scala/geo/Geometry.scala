@@ -15,6 +15,16 @@ object Geometry {
     def dist(other: Pos): Double = sqrt(dist2(other))
     def dist2(other: Pos): Double = sqr(this.x - other.x) + sqr(this.y - other.y)
 
+    def angle = math.atan2(y, x)
+    def rotate(alpha: Double, center: Pos) = {
+      val p = center - this
+      val beta = p.angle + alpha
+      val r = p.norm
+      val nx = r * math.cos(beta)
+      val ny = r * math.sin(beta)
+      center + Pos(nx, ny)
+    }
+
     // point of line a-b closest to this
     def closest(a: Pos, b: Pos) = {
       val da = b.y - a.y
