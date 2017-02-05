@@ -1,6 +1,5 @@
 package ai2
 
-import org.scalatest.Outcome
 import scala.annotation.tailrec
 import scala.util.Random
 
@@ -25,12 +24,13 @@ case class GomokuRules(size: Int, lengthToWin: Int) {
     }
   }
 
-  sealed trait Outcome
-  case object TrueWins extends Outcome
-  case object FalseWins extends Outcome
-  case object Undecided extends Outcome
-  case object Draw extends Outcome
 }
+
+sealed trait Outcome
+case object TrueWins extends Outcome
+case object FalseWins extends Outcome
+case object Undecided extends Outcome
+case object Draw extends Outcome
 
 object GomokuDemo extends App {
   def randomPlay(b: GomokuBoard) = {
@@ -38,6 +38,12 @@ object GomokuDemo extends App {
     b.free.toVector(i)
   }
 
-  GomokuRules(3, 3).judge(randomPlay, randomPlay)
+  val rules = GomokuRules(3, 3)
+  val ab = AlphaBetaGomoku(rules)
+  def alphaBetaPlay(b: GomokuBoard) = {
+    ab.bestMove(b, 9)
+  }
+
+  rules.judge(alphaBetaPlay, randomPlay)
 }
   

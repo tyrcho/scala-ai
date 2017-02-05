@@ -43,4 +43,13 @@ class GomokuSpec extends FlatSpec with Matchers {
     state.maxLength(false) shouldBe 2
     state.maxLength(true) shouldBe 1
   }
+
+  "rules" should "know when a game is won" in {
+    val rules = GomokuRules(3, 3)
+    val board = rules.initial
+      .play(1, 1).play(0, 0)
+      .play(0, 1).play(2, 2)
+      .play(2, 1)
+    rules.outcome(board) shouldBe FalseWins
+  }
 }

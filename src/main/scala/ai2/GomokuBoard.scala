@@ -10,13 +10,17 @@ case class GomokuBoard(
     playedFalse: Set[Pos] = Set(),
     quickFree: Option[Set[Pos]] = None) {
 
-  def play(x: Int, y: Int): GomokuBoard =
+  def play(x: Int, y: Int): GomokuBoard = play(Pos(x, y))
+
+  def play(p: Pos): GomokuBoard =
     if (next)
-      copy(next = false, playedTrue = playedTrue + Pos(x, y), quickFree = Some(free - Pos(x, y)))
+      copy(next = false, playedTrue = playedTrue + p, quickFree = Some(free - p))
     else
-      copy(next = true, playedFalse = playedFalse + Pos(x, y), quickFree = Some(free - Pos(x, y)))
+      copy(next = true, playedFalse = playedFalse + p, quickFree = Some(free - p))
 
   def free: Set[Pos] = quickFree.getOrElse(allFree)
+
+  override def toString = toText
 
   def toText: String = Seq.tabulate(height) { y =>
     Seq.tabulate(width) { x =>
@@ -24,7 +28,7 @@ case class GomokuBoard(
       else if (playedTrue(Pos(x, y))) 'T'
       else ' '
     }.mkString
-  }.mkString("\n")
+  }.mkString("\n") + s"\n${next.toString.toUpperCase.head} to play"
 
   def maxLength(player: Boolean) = {
     val played = if (player) playedTrue else playedFalse
