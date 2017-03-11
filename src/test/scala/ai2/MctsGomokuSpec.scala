@@ -49,8 +49,10 @@ class MctsGomokuSpec extends FlatSpec with Matchers with MockitoSugar {
     mc.step.nodes should have size (1)
     mc.step.step.nodes should have size (2)
     mc.step.step.step.nodes should have size (3)
-    mc.step.step.step.step.step.step.step.step.step.nodes should have size (9)
-    mc.step.step.step.step.step.step.step.step.step.step.step.nodes should have size (9)
+    mc.step(9).nodes should have size (9)
+    val step10 = mc.step(10)
+    step10.nodes should have size (9)
+    step10.nodes.values.count(_.nodes.size == 1) shouldBe 1
   }
 
   it should "simulate the selected node and record the result" in {
