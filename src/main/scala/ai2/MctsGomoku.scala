@@ -3,6 +3,23 @@ package ai2
 import scala.annotation.tailrec
 import scala.util.Random
 
+object MctsGomokuDemo extends App {
+  val rules = GomokuRules(3, 3)
+  def mctsPlayer(board: GomokuBoard): Pos = {
+    val mcts = MctsGomoku(rules).copy(board = board).step(10000)
+    //    mcts.debug()
+    mcts.nodes.maxBy(_._2.results.played)._1
+  }
+  def randomPlayer(board: GomokuBoard): Pos = {
+    val options = board.free.toSeq
+    options(Random.nextInt(options.size))
+  }
+  rules.judge(randomPlayer, mctsPlayer, rules.initial.copy(next = true))
+  //  val mcts = MctsGomoku(GomokuRules(3, 3))
+  //  val s = mcts.step(2000)
+  //  s.debug()
+}
+
 case class MctsGomoku(
     rules: GomokuRules,
     selectNodeHeuristic: MctsGomoku => Pos => Double,
@@ -11,30 +28,41 @@ case class MctsGomoku(
     resultsData: Option[Results] = None,
     nodes: Map[Pos, MctsGomoku] = Map.empty) {
 
+  def debug() = {
+    for {
+      (p, node) <- nodes
+    } println(p, node.results)
+  }
+
   @tailrec
   final def step(count: Int): MctsGomoku =
     if (count == 0) this
-    else step.step(count - 1)
-
-  def step: MctsGomoku = {
-    val move = board.free.maxBy(selectNodeHeuristic(this))
-    val node = nodes.get(move) match {
-      case Some(mcts) => mcts.step
-      case None       => makeChild(move).recordSimulation
+    else {
+      step.step(count - 1)
     }
-    copy(nodes = nodes + (move -> node))
-  }
+
+  def step: MctsGomoku =
+    if (board.free.isEmpty) this
+    else {
+      val move = board.free.maxBy(selectNodeHeuristic(this))
+      val node = nodes.get(move) match {
+        case Some(mcts) =>
+          mcts.step
+        case None =>
+          makeChild(move).recordSimulation
+      }
+      copy(nodes = nodes + (move -> node))
+    }
 
   def expand: MctsGomoku = {
     val move = board.free.maxBy(selectNodeHeuristic(this))
     addChild(move)
   }
 
-  lazy val results: Results = resultsData.getOrElse {
-    nodes.values.foldLeft(Results()) {
+  lazy val results: Results =
+    nodes.values.foldLeft(resultsData.getOrElse(Results())) {
       case (res, node) => res + node.results
     }
-  }
 
   def addChild(move: Pos): MctsGomoku = {
     val child = makeChild(move)
@@ -88,7 +116,8 @@ object MctsGomoku {
     mcts.nodes.get(move).map(_.results).map {
       case Results(played, trueWins) =>
         val wins = if (trueToPlay) trueWins else played - trueWins
-        wins / played + math.sqrt(2 * math.log(total) / played)
+        val uct = wins / played + math.sqrt(2 * math.log(total) / played)
+        uct
     }.getOrElse(Double.MaxValue)
   }
 
@@ -106,6 +135,8 @@ case class Results(played: Int = 0, trueWins: Float = 0) {
     case FalseWins        => copy(played = played + 1)
     case Draw | Undecided => copy(played = played + 1, trueWins = trueWins + 0.5f)
   }
+
+  def unary_- = copy(trueWins = played - trueWins)
 
   def +(r: Results): Results = Results(played + r.played, trueWins + r.trueWins)
 
