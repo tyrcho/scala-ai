@@ -23,13 +23,13 @@ class AlphaBetaGomokuSpec extends FlatSpec with Matchers {
 //      ab.bestMove(board, depth) shouldBe Pos(2, 1)
 //  }
 
-  "ab" should "find avoid kill move" in {
-    val board = rules.initial
-      .play(1, 1).play(0, 0)
-      .play(0, 1)
-    for (depth <- 2 to 10)
-      ab.bestMove(board, depth) shouldBe Pos(2, 1)
-  }
+//  "ab" should "find avoid kill move" in {
+//    val board = rules.initial
+//      .play(1, 1).play(0, 0)
+//      .play(0, 1)
+//    for (depth <- 2 to 10)
+//      ab.bestMove(board, depth) shouldBe Pos(2, 1)
+//  }
 
   it should "give good score to won board" in {
     val board = rules.initial

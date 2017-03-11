@@ -43,6 +43,13 @@ class GeometrySpec extends FlatSpec with Matchers with MockitoSugar with OneInst
     Pos(0, 0).moveTo(Pos(2, 2), 5) shouldBe Pos(2, 2)
   }
 
+  it should "add vector" in {
+    val a = Pos(10, 50)
+    val b = Pos(20, -25)
+    val ab = b - a
+    a + (ab / 2) shouldBe b - (ab / 2)
+  }
+
   it should "rotate" in {
     def check(p: Pos, center: Pos, angle: Double, expected: Pos) = {
       val rotated = p.rotate(angle, center)
