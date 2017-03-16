@@ -1,7 +1,10 @@
 package geo
 
+import scala.collection.BitSet
+import scala.collection.SortedSet
+
 case class BitGrid(gridData: GridData, masks: Masks) {
-  def empty: Boolean = gridData.data == 0
+  def empty: Boolean = gridData.data.isEmpty
 
   def complete: Boolean =
     masks.masksCompleted.exists(mask =>
@@ -22,20 +25,28 @@ case class BitGrid(gridData: GridData, masks: Masks) {
   def addRow(r: Int) = copy(gridData = gridData.addRow(r))
 }
 
-case class GridData(size: Int, data: Long = 0) {
+object GridData {
+  val fullGridCache = collection.mutable.Map.empty[Int, GridData]
+
+  def fullGrid(size: Int) = fullGridCache.getOrElseUpdate(size, {
+    val all = for {
+      r <- 0 until size
+      c <- 0 until size
+    } yield r * size + c
+    GridData(size, BitSet(all: _*))
+  })
+}
+
+case class GridData(size: Int, data: BitSet = BitSet.empty) {
   def +(r: Int, c: Int) = {
-    copy(data = data | toMask(r, c))
+    copy(data = data + toIndex(r, c))
   }
 
   def -(r: Int, c: Int) = {
-    copy(data = data & ~toMask(r, c))
+    copy(data = data - toIndex(r, c))
   }
 
-  def free = for {
-    r <- 0 until size
-    c <- 0 until size
-    if (data & toMask(r, c)) == 0
-  } yield (r, c)
+  def free: SortedSet[(Int, Int)] = GridData.fullGrid(size).data.&~(data).map(fromIndex)
 
   def addCol(c: Int) =
     (0 until size).foldLeft(this) {
@@ -47,30 +58,30 @@ case class GridData(size: Int, data: Long = 0) {
       case (bg, c) => bg + (r, c)
     }
 
-  private def toIndex(x: Int, y: Int) = x * size + y
-  private def toMask(x: Int, y: Int) = 1 << toIndex(x, y)
+  private def toIndex(r: Int, c: Int) = r * size + c
+  private def fromIndex(l: Int) = (l / size, l % size)
 }
 
 case class Masks(size: Int, needed: Int) {
   val empty = GridData(size)
 
-  val masksCompleted: Seq[Long] = {
+  val masksCompleted: Seq[BitSet] = {
 
-    def maskRow(r: Int): Long = empty.addRow(r).data
+    def maskRow(r: Int) = empty.addRow(r).data
 
-    def maskDiag1: Long = {
+    def maskDiag1 = {
       (0 until size).foldLeft(empty) {
         case (bg, i) => bg + (i, i)
       }.data
     }
 
-    def maskDiag2: Long = {
+    def maskDiag2 = {
       (0 until size).foldLeft(empty) {
         case (bg, i) => bg + (size - 1 - i, i)
       }.data
     }
 
-    def maskCol(c: Int): Long = empty.addCol(c).data
+    def maskCol(c: Int) = empty.addCol(c).data
 
     val hv = for {
       i <- 0 until size
