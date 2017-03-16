@@ -89,4 +89,33 @@ class BitGridSpec extends FlatSpec with Matchers {
     val bg = empty.addCol(size / 2) - (size / 4, size / 2)
     bg.free.size shouldBe (size * (size - 1) + 1)
   }
+
+  it should "detect a partial row " in {
+    val empty = BitGrid(19, 5)
+    val bg = empty.addCol(11, 5, 10)
+    bg.empty shouldBe false
+    bg.complete shouldBe true
+  }
+
+  it should "detect a partial col" in {
+    val empty = BitGrid(19, 6)
+    val bg = empty.addRow(17, 11, 17)
+    bg.empty shouldBe false
+    bg.complete shouldBe true
+  }
+
+  it should "detect a partial diag1" in {
+    val empty = BitGrid(19, 6)
+    val bg = empty.addDiag1(3, 3, 6)
+    bg.empty shouldBe false
+    bg.complete shouldBe true
+  }
+
+  it should "detect a partial diag2" in {
+    val empty = BitGrid(19, 6)
+    val bg = empty.addDiag2(12, 18, 6)
+    bg.empty shouldBe false
+    bg.complete shouldBe true
+  }
+
 }

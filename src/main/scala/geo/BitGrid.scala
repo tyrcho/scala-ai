@@ -21,8 +21,13 @@ case class BitGrid(gridData: GridData, masks: Masks) {
   }
 
   def addCol(c: Int) = copy(gridData = gridData.addCol(c))
+  def addCol(c: Int, minRow: Int, maxRow: Int) = copy(gridData = gridData.addCol(c, minRow, maxRow))
 
   def addRow(r: Int) = copy(gridData = gridData.addRow(r))
+  def addRow(r: Int, minCol: Int, maxCol: Int) = copy(gridData = gridData.addRow(r, minCol, maxCol))
+
+  def addDiag1(r: Int, c: Int, length: Int) = copy(gridData = gridData.addDiag1(r, c, length))
+  def addDiag2(r: Int, c: Int, length: Int) = copy(gridData = gridData.addDiag2(r, c, length))
 }
 
 object GridData {
@@ -48,14 +53,24 @@ case class GridData(size: Int, data: BitSet = BitSet.empty) {
 
   def free: SortedSet[(Int, Int)] = GridData.fullGrid(size).data.&~(data).map(fromIndex)
 
-  def addCol(c: Int) =
-    (0 until size).foldLeft(this) {
+  def addCol(c: Int, minRow: Int = 0, maxRow: Int = size) =
+    (minRow until maxRow).foldLeft(this) {
       case (bg, r) => bg + (r, c)
     }
 
-  def addRow(r: Int) =
-    (0 until size).foldLeft(this) {
+  def addRow(r: Int, minCol: Int = 0, maxCol: Int = size) =
+    (minCol until maxCol).foldLeft(this) {
       case (bg, c) => bg + (r, c)
+    }
+
+  def addDiag1(r: Int, c: Int, size: Int = size) =
+    (0 until size).foldLeft(this) {
+      case (bg, i) => bg + (r + i, c + i)
+    }
+
+  def addDiag2(r: Int, c: Int, size: Int = size) =
+    (0 until size).foldLeft(this) {
+      case (bg, i) => bg + (r + i, c - i)
     }
 
   private def toIndex(r: Int, c: Int) = r * size + c
@@ -67,28 +82,27 @@ case class Masks(size: Int, needed: Int) {
 
   val masksCompleted: Seq[BitSet] = {
 
-    def maskRow(r: Int) = empty.addRow(r).data
+    def maskCol(c: Int, rMin: Int, rMax: Int) = empty.addCol(c, rMin, rMax).data
+    def maskRow(r: Int, cMin: Int, cMax: Int) = empty.addRow(r, cMin, cMax).data
 
-    def maskDiag1 = {
-      (0 until size).foldLeft(empty) {
-        case (bg, i) => bg + (i, i)
-      }.data
-    }
+    def maskDiag1(r: Int, c: Int) = empty.addDiag1(r, c, needed).data
 
-    def maskDiag2 = {
-      (0 until size).foldLeft(empty) {
-        case (bg, i) => bg + (size - 1 - i, i)
-      }.data
-    }
-
-    def maskCol(c: Int) = empty.addCol(c).data
+    def maskDiag2(r: Int, c: Int) = empty.addDiag2(r, c, needed).data
 
     val hv = for {
-      i <- 0 until size
-      mask <- Seq(maskRow(i), maskCol(i))
+      pos <- 0 until size
+      pos2Min <- 0 to size - needed
+      pos2Max = pos2Min + needed
+      mask <- Seq(maskRow(pos, pos2Min, pos2Max), maskCol(pos, pos2Min, pos2Max))
     } yield mask
 
-    hv :+ maskDiag1 :+ maskDiag2
+    val diags = for {
+      r <- 0 to size - needed
+      c <- 0 to size - needed
+      mask <- Seq(maskDiag1(r, c), maskDiag2(r, size - 1 - c))
+    } yield mask
+
+    hv ++ diags
   }
 
 }
