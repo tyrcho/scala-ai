@@ -1,21 +1,41 @@
 package geo
 
-case class BitGrid(size: Int, needed: Int, data: Long = 0, masks: Seq[Long] = Seq.empty) {
-  def empty: Boolean = data == 0
-  def complete: Boolean =
-    masks.exists(mask =>
-      (data & mask) == mask)
+case class BitGrid(gridData: GridData, masks: Masks) {
+  def empty: Boolean = gridData.data == 0
 
-  def +(r: Int, c: Int): geo.BitGrid = {
+  def complete: Boolean =
+    masks.masksCompleted.exists(mask =>
+      (gridData.data & mask) == mask)
+
+  def free = gridData.free
+
+  def +(r: Int, c: Int) = {
+    copy(gridData = gridData + (r, c))
+  }
+
+  def -(r: Int, c: Int) = {
+    copy(gridData = gridData - (r, c))
+  }
+
+  def addCol(c: Int) = copy(gridData = gridData.addCol(c))
+
+  def addRow(r: Int) = copy(gridData = gridData.addRow(r))
+}
+
+case class GridData(size: Int, data: Long = 0) {
+  def +(r: Int, c: Int) = {
     copy(data = data | toMask(r, c))
   }
 
-  def -(r: Int, c: Int): geo.BitGrid = {
+  def -(r: Int, c: Int) = {
     copy(data = data & ~toMask(r, c))
   }
 
-  private def toIndex(x: Int, y: Int) = x * size + y
-  private def toMask(x: Int, y: Int) = 1 << toIndex(x, y)
+  def free = for {
+    r <- 0 until size
+    c <- 0 until size
+    if (data & toMask(r, c)) == 0
+  } yield (r, c)
 
   def addCol(c: Int) =
     (0 until size).foldLeft(this) {
@@ -26,15 +46,15 @@ case class BitGrid(size: Int, needed: Int, data: Long = 0, masks: Seq[Long] = Se
     (0 until size).foldLeft(this) {
       case (bg, c) => bg + (r, c)
     }
+
+  private def toIndex(x: Int, y: Int) = x * size + y
+  private def toMask(x: Int, y: Int) = 1 << toIndex(x, y)
 }
 
-object BitGrid {
+case class Masks(size: Int, needed: Int) {
+  val empty = GridData(size)
 
-  def apply(size: Int, needed: Int): BitGrid =
-    BitGrid(size, needed, 0, masks(size, needed))
-
-  def masks(size: Int, needed: Int): Seq[Long] = {
-    val empty = BitGrid(size, needed, 0, Seq.empty)
+  val masksCompleted: Seq[Long] = {
 
     def maskRow(r: Int): Long = empty.addRow(r).data
 
@@ -59,4 +79,11 @@ object BitGrid {
 
     hv :+ maskDiag1 :+ maskDiag2
   }
+
+}
+
+object BitGrid {
+
+  def apply(size: Int, needed: Int): BitGrid =
+    BitGrid(GridData(size), Masks(size, needed))
 }

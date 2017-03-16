@@ -71,4 +71,9 @@ class BitGridSpec extends FlatSpec with Matchers {
     bg.complete shouldBe false
   }
 
+  it should "list free cells" in {
+    val empty = BitGrid(3, 3)
+    empty.free.size shouldBe 9
+  }
+
 }
