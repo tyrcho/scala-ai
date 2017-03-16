@@ -6,13 +6,26 @@ case class BitGrid(size: Int, needed: Int, data: Long = 0, masks: Seq[Long] = Se
     masks.exists(mask =>
       (data & mask) == mask)
 
-  def +(x: Int, y: Int): geo.BitGrid = {
-    val i = toIndex(x, y)
+  def +(r: Int, c: Int): geo.BitGrid = {
+    copy(data = data | toMask(r, c))
+  }
 
-    copy(data = data | 1 << i)
+  def -(r: Int, c: Int): geo.BitGrid = {
+    copy(data = data & ~toMask(r, c))
   }
 
   private def toIndex(x: Int, y: Int) = x * size + y
+  private def toMask(x: Int, y: Int) = 1 << toIndex(x, y)
+
+  def addCol(c: Int) =
+    (0 until size).foldLeft(this) {
+      case (bg, r) => bg + (r, c)
+    }
+
+  def addRow(r: Int) =
+    (0 until size).foldLeft(this) {
+      case (bg, c) => bg + (r, c)
+    }
 }
 
 object BitGrid {
@@ -23,11 +36,7 @@ object BitGrid {
   def masks(size: Int, needed: Int): Seq[Long] = {
     val empty = BitGrid(size, needed, 0, Seq.empty)
 
-    def maskRow(r: Int): Long = {
-      (0 until size).foldLeft(empty) {
-        case (bg, c) => bg + (r, c)
-      }.data
-    }
+    def maskRow(r: Int): Long = empty.addRow(r).data
 
     def maskDiag1: Long = {
       (0 until size).foldLeft(empty) {
@@ -41,11 +50,7 @@ object BitGrid {
       }.data
     }
 
-    def maskCol(c: Int): Long = {
-      (0 until size).foldLeft(empty) {
-        case (bg, r) => bg + (r, c)
-      }.data
-    }
+    def maskCol(c: Int): Long = empty.addCol(c).data
 
     val hv = for {
       i <- 0 until size
