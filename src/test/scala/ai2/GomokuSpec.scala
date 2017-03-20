@@ -12,7 +12,7 @@ import org.scalatest.matchers.ShouldMatchers._
 
 @RunWith(classOf[JUnitRunner])
 class GomokuSpec extends FlatSpec with Matchers {
-  val initial = GomokuBoard(5, 6)
+  val initial = GomokuBoard(5)
 
   "Gomoku" should "be initially empty" in {
     initial.playedTrue shouldBe Set()
@@ -28,13 +28,13 @@ class GomokuSpec extends FlatSpec with Matchers {
   it should "list free cells" in {
     val all = (for {
       i <- 0 to 4
-      j <- 0 to 5
+      j <- 0 to 4
     } yield Pos(i, j)).toSet
 
-    initial.free shouldBe all
+    initial.free should contain theSameElementsAs all
 
     val state = initial.play(1, 1).play(1, 2)
-    state.free shouldBe (all - Pos(1, 1) - Pos(1, 2))
+    state.free should contain theSameElementsAs (all - Pos(1, 1) - Pos(1, 2))
   }
 
   it should "give max line length" in {

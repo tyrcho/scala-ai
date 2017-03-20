@@ -2,15 +2,17 @@ package geo
 
 import scala.collection.BitSet
 import scala.collection.SortedSet
+import ai2.Pos
 
 case class BitGrid(gridData: GridData, masks: Masks) {
-  def empty: Boolean = gridData.data.isEmpty
+  def empty: Boolean = gridData.empty
 
   def complete: Boolean =
-    masks.masksCompleted.exists(mask =>
-      (gridData.data & mask) == mask)
+    masks.isComplete(gridData)
 
   def free = gridData.free
+
+  def used = gridData.used
 
   def +(r: Int, c: Int) = {
     copy(gridData = gridData + (r, c))
@@ -31,27 +33,59 @@ case class BitGrid(gridData: GridData, masks: Masks) {
 }
 
 object GridData {
-  val fullGridCache = collection.mutable.Map.empty[Int, GridData]
+  def apply(size: Int): GridData =
+    GridData(size, rows = Vector.fill(size)(0L))
+
+  val fullGridCache = collection.mutable.Map.empty[Int, BitSet]
 
   def fullGrid(size: Int) = fullGridCache.getOrElseUpdate(size, {
     val all = for {
       r <- 0 until size
       c <- 0 until size
     } yield r * size + c
-    GridData(size, BitSet(all: _*))
+    BitSet(all: _*)
   })
+
+  def full(size: Int) = GridData(size, Vector.fill(size)((1L << size + 1) - 1))
 }
 
-case class GridData(size: Int, data: BitSet = BitSet.empty) {
+case class GridData(
+    size: Int,
+    rows: Vector[Long],
+    data: BitSet = BitSet.empty) {
+
+  def empty = rows.forall(0.==)
+
   def +(r: Int, c: Int) = {
-    copy(data = data + toIndex(r, c))
+    val i = toIndex(r, c)
+    copy(
+      data = data + i,
+      rows = rows.updated(r, rows(r) | 1 << c))
   }
 
   def -(r: Int, c: Int) = {
-    copy(data = data - toIndex(r, c))
+    val i = toIndex(r, c)
+    copy(
+      data = data - i,
+      rows = rows.updated(r, rows(r) & ~(1 << c)))
   }
 
-  def free: SortedSet[(Int, Int)] = GridData.fullGrid(size).data.&~(data).map(fromIndex)
+  lazy val free: Iterable[(Int, Int)] =
+    for {
+      r <- 0 until size
+      row = rows(r)
+      c <- 0 until size
+      if (row & (1 << c)) == 0
+    } yield (r, c)
+  lazy val used: Iterable[(Int, Int)] =
+    for {
+      r <- 0 until size
+      row = rows(r)
+      c <- 0 until size
+      if (row & (1 << c)) != 0
+    } yield (r, c)
+
+  lazy val usedPos: Set[Pos] = used.map { case (r, c) => Pos(r, c) }.toSet
 
   def addCol(c: Int, minRow: Int = 0, maxRow: Int = size) =
     (minRow until maxRow).foldLeft(this) {
@@ -73,12 +107,75 @@ case class GridData(size: Int, data: BitSet = BitSet.empty) {
       case (bg, i) => bg + (r + i, c - i)
     }
 
+  def subMatrix(r0: Int, c0: Int, subSize: Int): Long = {
+    val bits = for {
+      x <- 0 until subSize
+      r = x + r0
+      y <- 0 until subSize
+      c = y + c0
+      i = x * subSize + y
+      bit = (1L << i) & (rows(r) >> c << i)
+      //    bit = (1L & hasElt(r, c)) << i
+    } yield bit
+    bits.sum
+  }
+
+  def hasElt(r: Int, c: Int) = (rows(r) << c)
+  //    if ((rows(r) & (1L << c)) != 0) 1 else 0
+
   private def toIndex(r: Int, c: Int) = r * size + c
   private def fromIndex(l: Int) = (l / size, l % size)
 }
 
 case class Masks(size: Int, needed: Int) {
   val empty = GridData(size)
+
+  def isComplete(grid: GridData) =
+    matrixIndices.exists {
+      case (r0, c0) =>
+        val gsm = grid.subMatrix(r0, c0, needed)
+        matricesCompleted.exists(m => (m & gsm) == m)
+    }
+  //  masksCompleted.exists(mask =>
+  //    (grid.data & mask) == mask)
+
+  val matrixIndices = for {
+    r0 <- 0 to size - needed
+    c0 <- 0 to size - needed
+  } yield (r0, c0)
+
+  def preComputedMatricesRows: Seq[Long] =
+    (0 until needed).map(row => (for {
+      c <- 0 until needed
+      i = row * needed + c
+      bit = (1L << i)
+    } yield bit).sum)
+
+  def preComputedMatricesCols: Seq[Long] =
+    (0 until needed).map(col => (for {
+      r <- 0 until needed
+      i = r * needed + col
+      bit = (1L << i)
+    } yield bit).sum)
+
+  def preComputedMatricesDiag1: Long =
+    (for {
+      r <- 0 until needed
+      c = r
+      i = r * needed + c
+      bit = (1L << i)
+    } yield bit).sum
+
+  def preComputedMatricesDiag2: Long =
+    (for {
+      r <- 0 until needed
+      c = needed - 1 - r
+      i = r * needed + c
+      bit = (1L << i)
+    } yield bit).sum
+
+  val matricesCompleted: Set[Long] =
+    (preComputedMatricesRows ++ preComputedMatricesCols :+ preComputedMatricesDiag1 :+ preComputedMatricesDiag2).toSet
 
   val masksCompleted: Seq[BitSet] = {
 

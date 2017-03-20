@@ -4,9 +4,9 @@ import scala.annotation.tailrec
 import scala.util.Random
 
 object MctsGomokuDemo extends App {
-  val rules = GomokuRules(3, 3)
+  val rules = GomokuRules(10, 5)
   def mctsPlayer(board: GomokuBoard): Pos = {
-    val mcts = MctsGomoku(rules).copy(board = board).step(10000)
+    val mcts = MctsGomoku(rules).copy(board = board).step(500)
     //    mcts.debug()
     mcts.nodes.maxBy(_._2.results.played)._1
   }
@@ -93,8 +93,8 @@ object MctsGomoku {
     }
 
   def outcome(rules: GomokuRules)(b: GomokuBoard) =
-    if (b.maxLength(true) >= rules.lengthToWin) TrueWins
-    else if (b.maxLength(false) >= rules.lengthToWin) FalseWins
+    if (b.hasWon(true, rules.lengthToWin)) TrueWins
+    else if (b.hasWon(false, rules.lengthToWin)) FalseWins
     else if (b.free.isEmpty) Draw
     else Undecided
 

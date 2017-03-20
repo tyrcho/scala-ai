@@ -1,34 +1,61 @@
 package ai2
 
 import scala.annotation.tailrec
+import geo.GridData
+import scala.collection.immutable.BitSet
+import geo.BitGrid
+import geo.Masks
+
+object GomokuBoard {
+  def apply(size: Int): GomokuBoard =
+    GomokuBoard(
+      size,
+      dataTrue = GridData(size),
+      dataFalse = GridData(size),
+      dataFree = GridData(size, rows = Vector.fill(size)((1 << (size + 1)) - 1), data = GridData.fullGrid(size)),
+      next = false)
+}
 
 case class GomokuBoard(
-    width: Int,
-    height: Int,
-    next: Boolean = false,
-    playedTrue: Set[Pos] = Set(),
-    playedFalse: Set[Pos] = Set(),
-    quickFree: Option[Set[Pos]] = None) {
+    size: Int,
+    dataTrue: GridData,
+    dataFalse: GridData,
+    dataFree: GridData,
+    next: Boolean = false) {
 
   def play(x: Int, y: Int): GomokuBoard = play(Pos(x, y))
 
   def play(p: Pos): GomokuBoard =
     if (next)
-      copy(next = false, playedTrue = playedTrue + p, quickFree = Some(free - p))
+      copy(
+        next = false,
+        dataFree = dataFree - (p.x, p.y),
+        dataTrue = dataTrue + (p.x, p.y))
     else
-      copy(next = true, playedFalse = playedFalse + p, quickFree = Some(free - p))
+      copy(
+        next = true,
+        dataFree = dataFree - (p.x, p.y),
+        dataFalse = dataFalse + (p.x, p.y))
 
-  def free: Set[Pos] = quickFree.getOrElse(allFree)
+  lazy val playedFalse: Set[Pos] = dataFalse.usedPos
+  lazy val playedTrue: Set[Pos] = dataTrue.usedPos
+
+  lazy val free: Set[Pos] = dataFree.usedPos
 
   override def toString = toText
 
-  def toText: String = Seq.tabulate(height) { y =>
-    Seq.tabulate(width) { x =>
+  def toText: String = Seq.tabulate(size) { y =>
+    Seq.tabulate(size) { x =>
       if (playedFalse(Pos(x, y))) 'F'
       else if (playedTrue(Pos(x, y))) 'T'
       else ' '
     }.mkString
   }.mkString("\n") + s"\n${next.toString.toUpperCase.head} to play"
+
+  def hasWon(player: Boolean, needed: Int) = {
+    val data = if (player) dataTrue else dataFalse
+    BitGrid(data, Masks(size, needed)).complete
+  }
 
   def maxLength(player: Boolean) = {
     val played = if (player) playedTrue else playedFalse
@@ -48,11 +75,6 @@ case class GomokuBoard(
       lengths.max
     }
   }
-
-  private def allFree = (for {
-    i <- 0 until width
-    j <- 0 until height
-  } yield Pos(i, j)).toSet
 }
 
 object Directions {

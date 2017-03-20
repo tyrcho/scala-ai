@@ -4,11 +4,11 @@ import scala.annotation.tailrec
 import scala.util.Random
 
 case class GomokuRules(size: Int, lengthToWin: Int) {
-  val initial = GomokuBoard(size, size)
+  val initial: ai2.GomokuBoard = GomokuBoard(size)
 
   def outcome(b: GomokuBoard) =
-    if (b.maxLength(true) >= lengthToWin) TrueWins
-    else if (b.maxLength(false) >= lengthToWin) FalseWins
+    if (b.hasWon(true, lengthToWin)) TrueWins
+    else if (b.hasWon(false, lengthToWin)) FalseWins
     else if (b.free.isEmpty) Draw
     else Undecided
 
@@ -33,17 +33,15 @@ case object Undecided extends Outcome
 case object Draw extends Outcome
 
 object GomokuDemo extends App {
-  def randomPlay(b: GomokuBoard) = {
+  def randomPlay(b: GomokuBoard): ai2.Pos = {
     val i = Random.nextInt(b.free.size)
     b.free.toVector(i)
   }
 
-  val rules = GomokuRules(3, 3)
-  val ab = AlphaBetaGomoku(rules)
-  def alphaBetaPlay(b: GomokuBoard) = {
-    ab.bestMove(b, 9)
-  }
+  val rules: ai2.GomokuRules = GomokuRules(3, 3)
+  val ab: ai2.AlphaBetaGomoku = AlphaBetaGomoku(rules)
+  def alphaBetaPlay(b: GomokuBoard): ai2.Pos = ab.bestMove(b, 9)
 
   rules.judge(alphaBetaPlay, randomPlay)
 }
-  
+

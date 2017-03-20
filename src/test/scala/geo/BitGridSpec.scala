@@ -26,12 +26,6 @@ class BitGridSpec extends FlatSpec with Matchers {
     bg.complete shouldBe true
   }
 
-  it should "detect a full col" in {
-    val bg = BitGrid(3, 3) + (0, 1) + (1, 1) + (2, 1)
-    bg.empty shouldBe false
-    bg.complete shouldBe true
-  }
-
   it should "detect a diag1" in {
     val bg = BitGrid(3, 3) + (0, 0) + (1, 1) + (2, 2)
     bg.empty shouldBe false
@@ -50,18 +44,29 @@ class BitGridSpec extends FlatSpec with Matchers {
     bg.complete shouldBe false
   }
 
-  it should "add a full col" in {
-    val empty = BitGrid(3, 3)
-    val bg = empty.addCol(0)
-    bg.empty shouldBe false
-    bg.complete shouldBe true
+  for (c <- 0 to 2) {
+    it should s"detect a full col in pos $c" in {
+      val empty = BitGrid(3, 3)
+      val bg = empty.addCol(c)
+      bg.empty shouldBe false
+      bg.complete shouldBe true
+    }
   }
 
-  it should "detect a full row in a large grid" in {
+  it should "detect a full col in a large grid" in {
     val empty = BitGrid(19, 19)
     val bg = empty.addCol(11)
     bg.empty shouldBe false
     bg.complete shouldBe true
+  }
+
+  it should "compute submatrix long value" in {
+    val gd = GridData.full(19)
+    for {
+      r <- 0 to 16
+      c <- 0 to 16
+      gsm = gd.subMatrix(r, c, 3)
+    } gsm shouldBe (1L << 9) - 1
   }
 
   it should "detect a full row - 1 in a large grid" in {
@@ -90,16 +95,23 @@ class BitGridSpec extends FlatSpec with Matchers {
     bg.free.size shouldBe (size * (size - 1) + 1)
   }
 
+  it should "list used cells (large)" in {
+    val size = 19
+    val empty = BitGrid(size, size)
+    val bg = empty.addCol(size / 2) - (size / 4, size / 2)
+    bg.used.size shouldBe (size * size - (size * (size - 1) + 1))
+  }
+
   it should "detect a partial row " in {
     val empty = BitGrid(19, 5)
-    val bg = empty.addCol(11, 5, 10)
+    val bg = empty.addRow(1, 5, 10)
     bg.empty shouldBe false
     bg.complete shouldBe true
   }
 
   it should "detect a partial col" in {
     val empty = BitGrid(19, 6)
-    val bg = empty.addRow(17, 11, 17)
+    val bg = empty.addCol(17, 11, 17)
     bg.empty shouldBe false
     bg.complete shouldBe true
   }
