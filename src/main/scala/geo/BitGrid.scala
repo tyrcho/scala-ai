@@ -96,15 +96,21 @@ case class GridData(
     }
 
   def subMatrix(r0: Int, c0: Int, subSize: Int): Long = {
-    val bits = for {
-      x <- 0 until subSize
-      r = x + r0
-      y <- 0 until subSize
-      c = y + c0
-      i = x * subSize + y
-      bit = (1L << i) & (rows(r) >> c << i)
-    } yield bit
-    bits.sum
+    var sum = 0L
+    var x = 0
+    while (x < subSize) {
+      val r = x + r0
+      var y = 0
+      while (y < subSize) {
+        val c = y + c0
+        val i = x * subSize + y
+        val bit = (1L << i) & (rows(r) >> c << i)
+        sum += bit
+        y += 1
+      }
+      x += 1
+    }
+    sum
   }
 
   private def toIndex(r: Int, c: Int) = r * size + c
@@ -120,8 +126,6 @@ case class Masks(size: Int, needed: Int) {
         val gsm = grid.subMatrix(r0, c0, needed)
         matricesCompleted.exists(m => (m & gsm) == m)
     }
-  //  masksCompleted.exists(mask =>
-  //    (grid.data & mask) == mask)
 
   val matrixIndices = for {
     r0 <- 0 to size - needed
