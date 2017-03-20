@@ -15,14 +15,14 @@ class GomokuSpec extends FlatSpec with Matchers {
   val initial = GomokuBoard(5)
 
   "Gomoku" should "be initially empty" in {
-    initial.playedTrue shouldBe Set()
-    initial.playedFalse shouldBe Set()
+    initial.playedTrue shouldBe empty
+    initial.playedFalse shouldBe empty
   }
 
   it should "keep played moves" in {
     val state = initial.play(1, 1).play(1, 2)
-    state.playedTrue shouldBe Set(Pos(1, 2))
-    state.playedFalse shouldBe Set(Pos(1, 1))
+    state.playedTrue should contain only Pos(1, 2)
+    state.playedFalse should contain only Pos(1, 1)
   }
 
   it should "list free cells" in {

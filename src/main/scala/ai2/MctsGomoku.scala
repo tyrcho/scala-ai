@@ -6,7 +6,7 @@ import scala.util.Random
 object MctsGomokuDemo extends App {
   val rules = GomokuRules(10, 5)
   def mctsPlayer(board: GomokuBoard): Pos = {
-    val mcts = MctsGomoku(rules).copy(board = board).step(500)
+    val mcts = MctsGomoku(rules).copy(board = board).step(5000)
     //    mcts.debug()
     mcts.nodes.maxBy(_._2.results.played)._1
   }

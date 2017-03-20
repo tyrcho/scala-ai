@@ -7,7 +7,7 @@ import ai2.Pos
 case class BitGrid(gridData: GridData, masks: Masks) {
   def empty: Boolean = gridData.empty
 
-  def complete: Boolean =
+  @inline def complete: Boolean =
     masks.isComplete(gridData)
 
   def free = gridData.free
@@ -90,9 +90,9 @@ case class GridData(
     buffer
   }
 
-  lazy val usedPos: Set[Pos] = {
+  lazy val usedPos: Iterable[Pos] = {
     var r = 0
-    var buffer = Set.empty[Pos]
+    var buffer = collection.mutable.Buffer.empty[Pos]
     while (r < size) {
       var row = rows(r)
       var c = 0

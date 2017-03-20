@@ -36,17 +36,17 @@ case class GomokuBoard(
         dataFree = dataFree - (p.x, p.y),
         dataFalse = dataFalse + (p.x, p.y))
 
-  lazy val playedFalse: Set[Pos] = dataFalse.usedPos
-  lazy val playedTrue: Set[Pos] = dataTrue.usedPos
+  lazy val playedFalse = dataFalse.usedPos
+  lazy val playedTrue = dataTrue.usedPos
 
-  lazy val free: Set[Pos] = dataFree.usedPos
+  lazy val free = dataFree.usedPos
 
   override def toString = toText
 
   def toText: String = Seq.tabulate(size) { y =>
     Seq.tabulate(size) { x =>
-      if (playedFalse(Pos(x, y))) 'F'
-      else if (playedTrue(Pos(x, y))) 'T'
+      if (playedFalse.toSet(Pos(x, y))) 'F'
+      else if (playedTrue.toSet(Pos(x, y))) 'T'
       else ' '
     }.mkString
   }.mkString("\n") + s"\n${next.toString.toUpperCase.head} to play"
@@ -62,7 +62,7 @@ case class GomokuBoard(
     @tailrec
     def length(direction: (Int, Int), from: Pos, l: Int): Int = {
       val pos = Pos(from.x + direction._1, from.y + direction._2)
-      if (played(pos)) length(direction, pos, l + 1)
+      if (played.toSet(pos)) length(direction, pos, l + 1)
       else l
     }
 
