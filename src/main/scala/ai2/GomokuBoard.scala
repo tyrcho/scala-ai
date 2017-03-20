@@ -3,7 +3,6 @@ package ai2
 import scala.annotation.tailrec
 import geo.GridData
 import scala.collection.immutable.BitSet
-import geo.BitGrid
 import geo.Masks
 
 object GomokuBoard {
@@ -53,7 +52,7 @@ case class GomokuBoard(
 
   def hasWon(player: Boolean, needed: Int) = {
     val data = if (player) dataTrue else dataFalse
-    BitGrid(data, Masks(size, needed)).complete
+    Masks.isComplete(data, needed)
   }
 
   def maxLength(player: Boolean) = {

@@ -4,34 +4,6 @@ import scala.collection.BitSet
 import scala.collection.SortedSet
 import ai2.Pos
 
-case class BitGrid(gridData: GridData, masks: Masks) {
-  def empty: Boolean = gridData.empty
-
-  @inline def complete: Boolean =
-    masks.isComplete(gridData)
-
-  def free = gridData.free
-
-  def used = gridData.used
-
-  def +(r: Int, c: Int) = {
-    copy(gridData = gridData + (r, c))
-  }
-
-  def -(r: Int, c: Int) = {
-    copy(gridData = gridData - (r, c))
-  }
-
-  def addCol(c: Int) = copy(gridData = gridData.addCol(c))
-  def addCol(c: Int, minRow: Int, maxRow: Int) = copy(gridData = gridData.addCol(c, minRow, maxRow))
-
-  def addRow(r: Int) = copy(gridData = gridData.addRow(r))
-  def addRow(r: Int, minCol: Int, maxCol: Int) = copy(gridData = gridData.addRow(r, minCol, maxCol))
-
-  def addDiag1(r: Int, c: Int, length: Int) = copy(gridData = gridData.addDiag1(r, c, length))
-  def addDiag2(r: Int, c: Int, length: Int) = copy(gridData = gridData.addDiag2(r, c, length))
-}
-
 object GridData {
   def apply(size: Int): GridData =
     GridData(size, rows = Vector.fill(size)(0L))
@@ -149,6 +121,30 @@ case class GridData(
 }
 
 object Masks {
+
+  def isComplete(grid: GridData, needed: Int) = {
+    val size = grid.size
+    var found = false
+    val matricesCompleted: Seq[Long] = Masks.matricesCompleted(needed)
+    val mcSize = matricesCompleted.size
+    var r0 = 0
+    while (r0 <= size - needed && !found) {
+      var c0 = 0
+      while (c0 <= size - needed && !found) {
+        val gsm = grid.subMatrix(r0, c0, needed)
+        var i = 0
+        while (i < mcSize && !found) {
+          val matrix = matricesCompleted(i)
+          found ||= (matrix & gsm) == matrix
+          i += 1
+        }
+        c0 += 1
+      }
+      r0 += 1
+    }
+    found
+  }
+
   val matricesCache = collection.mutable.Map.empty[Int, Seq[Long]]
 
   def matricesCompleted(needed: Int): Seq[Long] = matricesCache.getOrElseUpdate(needed, {
@@ -185,37 +181,4 @@ object Masks {
     preComputedMatricesRows ++ preComputedMatricesCols :+ preComputedMatricesDiag1 :+ preComputedMatricesDiag2
   })
 
-}
-
-case class Masks(size: Int, needed: Int) {
-  val empty = GridData(size)
-
-  def isComplete(grid: GridData) = {
-    var found = false
-    var r0 = 0
-    while (r0 <= size - needed && !found) {
-      var c0 = 0
-      while (c0 <= size - needed && !found) {
-        val gsm = grid.subMatrix(r0, c0, needed)
-        var i = 0
-        while (i < mcSize && !found) {
-          val matrix = matricesCompleted(i)
-          found ||= (matrix & gsm) == matrix
-          i += 1
-        }
-        c0 += 1
-      }
-      r0 += 1
-    }
-    found
-  }
-
-  val matricesCompleted: Seq[Long] = Masks.matricesCompleted(needed)
-  val mcSize = matricesCompleted.size
-}
-
-object BitGrid {
-
-  def apply(size: Int, needed: Int): BitGrid =
-    BitGrid(GridData(size), Masks(size, needed))
 }
