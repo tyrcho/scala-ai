@@ -58,22 +58,53 @@ case class GridData(
     copy(rows = rows.updated(r, rows(r) & ~(1 << c)))
   }
 
-  lazy val free: Iterable[(Int, Int)] =
-    for {
-      r <- 0 until size
-      row = rows(r)
-      c <- 0 until size
-      if (row & (1 << c)) == 0
-    } yield (r, c)
-  lazy val used: Iterable[(Int, Int)] =
-    for {
-      r <- 0 until size
-      row = rows(r)
-      c <- 0 until size
-      if (row & (1 << c)) != 0
-    } yield (r, c)
+  lazy val free: Iterable[(Int, Int)] = {
+    var r = 0
+    var buffer = collection.mutable.Buffer[(Int, Int)]()
+    while (r < size) {
+      var row = rows(r)
+      var c = 0
+      while (c < size) {
+        if ((row & (1 << c)) == 0)
+          buffer += ((r, c))
+        c += 1
+      }
+      r += 1
+    }
+    buffer
+  }
 
-  lazy val usedPos: Set[Pos] = used.map { case (r, c) => Pos(r, c) }.toSet
+  lazy val used: Iterable[(Int, Int)] = {
+    var r = 0
+    var buffer = collection.mutable.Buffer[(Int, Int)]()
+    while (r < size) {
+      var row = rows(r)
+      var c = 0
+      while (c < size) {
+        if ((row & (1 << c)) != 0)
+          buffer += ((r, c))
+        c += 1
+      }
+      r += 1
+    }
+    buffer
+  }
+
+  lazy val usedPos: Set[Pos] = {
+    var r = 0
+    var buffer = Set.empty[Pos]
+    while (r < size) {
+      var row = rows(r)
+      var c = 0
+      while (c < size) {
+        if ((row & (1 << c)) != 0)
+          buffer += Pos(r, c)
+        c += 1
+      }
+      r += 1
+    }
+    buffer
+  }
 
   def addCol(c: Int, minRow: Int = 0, maxRow: Int = size) =
     (minRow until maxRow).foldLeft(this) {
@@ -117,6 +148,45 @@ case class GridData(
   private def fromIndex(l: Int) = (l / size, l % size)
 }
 
+object Masks {
+  val matricesCache = collection.mutable.Map.empty[Int, Seq[Long]]
+
+  def matricesCompleted(needed: Int): Seq[Long] = matricesCache.getOrElseUpdate(needed, {
+    def preComputedMatricesRows: Seq[Long] =
+      (0 until needed).map(row => (for {
+        c <- 0 until needed
+        i = row * needed + c
+        bit = (1L << i)
+      } yield bit).sum)
+
+    def preComputedMatricesCols: Seq[Long] =
+      (0 until needed).map(col => (for {
+        r <- 0 until needed
+        i = r * needed + col
+        bit = (1L << i)
+      } yield bit).sum)
+
+    def preComputedMatricesDiag1: Long =
+      (for {
+        r <- 0 until needed
+        c = r
+        i = r * needed + c
+        bit = (1L << i)
+      } yield bit).sum
+
+    def preComputedMatricesDiag2: Long =
+      (for {
+        r <- 0 until needed
+        c = needed - 1 - r
+        i = r * needed + c
+        bit = (1L << i)
+      } yield bit).sum
+
+    preComputedMatricesRows ++ preComputedMatricesCols :+ preComputedMatricesDiag1 :+ preComputedMatricesDiag2
+  })
+
+}
+
 case class Masks(size: Int, needed: Int) {
   val empty = GridData(size)
 
@@ -140,43 +210,7 @@ case class Masks(size: Int, needed: Int) {
     found
   }
 
-  val matrixIndices = for {
-    r0 <- 0 to size - needed
-    c0 <- 0 to size - needed
-  } yield (r0, c0)
-
-  def preComputedMatricesRows: Seq[Long] =
-    (0 until needed).map(row => (for {
-      c <- 0 until needed
-      i = row * needed + c
-      bit = (1L << i)
-    } yield bit).sum)
-
-  def preComputedMatricesCols: Seq[Long] =
-    (0 until needed).map(col => (for {
-      r <- 0 until needed
-      i = r * needed + col
-      bit = (1L << i)
-    } yield bit).sum)
-
-  def preComputedMatricesDiag1: Long =
-    (for {
-      r <- 0 until needed
-      c = r
-      i = r * needed + c
-      bit = (1L << i)
-    } yield bit).sum
-
-  def preComputedMatricesDiag2: Long =
-    (for {
-      r <- 0 until needed
-      c = needed - 1 - r
-      i = r * needed + c
-      bit = (1L << i)
-    } yield bit).sum
-
-  val matricesCompleted: Seq[Long] =
-    (preComputedMatricesRows ++ preComputedMatricesCols :+ preComputedMatricesDiag1 :+ preComputedMatricesDiag2)
+  val matricesCompleted: Seq[Long] = Masks.matricesCompleted(needed)
   val mcSize = matricesCompleted.size
 }
 
