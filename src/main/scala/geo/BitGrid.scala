@@ -36,38 +36,26 @@ object GridData {
   def apply(size: Int): GridData =
     GridData(size, rows = Vector.fill(size)(0L))
 
-  val fullGridCache = collection.mutable.Map.empty[Int, BitSet]
+  val fullGridCache = collection.mutable.Map.empty[Int, GridData]
 
-  def fullGrid(size: Int) = fullGridCache.getOrElseUpdate(size, {
-    val all = for {
-      r <- 0 until size
-      c <- 0 until size
-    } yield r * size + c
-    BitSet(all: _*)
-  })
-
-  def full(size: Int) = GridData(size, Vector.fill(size)((1L << size + 1) - 1))
+  def full(size: Int) = fullGridCache.getOrElseUpdate(size,
+    GridData(size, Vector.fill(size)((1L << size + 1) - 1)))
 }
 
 case class GridData(
     size: Int,
-    rows: Vector[Long],
-    data: BitSet = BitSet.empty) {
+    rows: Vector[Long]) {
 
   def empty = rows.forall(0.==)
 
   def +(r: Int, c: Int) = {
     val i = toIndex(r, c)
-    copy(
-      data = data + i,
-      rows = rows.updated(r, rows(r) | 1 << c))
+    copy(rows = rows.updated(r, rows(r) | 1 << c))
   }
 
   def -(r: Int, c: Int) = {
     val i = toIndex(r, c)
-    copy(
-      data = data - i,
-      rows = rows.updated(r, rows(r) & ~(1 << c)))
+    copy(rows = rows.updated(r, rows(r) & ~(1 << c)))
   }
 
   lazy val free: Iterable[(Int, Int)] =
@@ -115,13 +103,9 @@ case class GridData(
       c = y + c0
       i = x * subSize + y
       bit = (1L << i) & (rows(r) >> c << i)
-      //    bit = (1L & hasElt(r, c)) << i
     } yield bit
     bits.sum
   }
-
-  def hasElt(r: Int, c: Int) = (rows(r) << c)
-  //    if ((rows(r) & (1L << c)) != 0) 1 else 0
 
   private def toIndex(r: Int, c: Int) = r * size + c
   private def fromIndex(l: Int) = (l / size, l % size)
@@ -176,32 +160,6 @@ case class Masks(size: Int, needed: Int) {
 
   val matricesCompleted: Set[Long] =
     (preComputedMatricesRows ++ preComputedMatricesCols :+ preComputedMatricesDiag1 :+ preComputedMatricesDiag2).toSet
-
-  val masksCompleted: Seq[BitSet] = {
-
-    def maskCol(c: Int, rMin: Int, rMax: Int) = empty.addCol(c, rMin, rMax).data
-    def maskRow(r: Int, cMin: Int, cMax: Int) = empty.addRow(r, cMin, cMax).data
-
-    def maskDiag1(r: Int, c: Int) = empty.addDiag1(r, c, needed).data
-
-    def maskDiag2(r: Int, c: Int) = empty.addDiag2(r, c, needed).data
-
-    val hv = for {
-      pos <- 0 until size
-      pos2Min <- 0 to size - needed
-      pos2Max = pos2Min + needed
-      mask <- Seq(maskRow(pos, pos2Min, pos2Max), maskCol(pos, pos2Min, pos2Max))
-    } yield mask
-
-    val diags = for {
-      r <- 0 to size - needed
-      c <- 0 to size - needed
-      mask <- Seq(maskDiag1(r, c), maskDiag2(r, size - 1 - c))
-    } yield mask
-
-    hv ++ diags
-  }
-
 }
 
 object BitGrid {

@@ -12,8 +12,7 @@ object GomokuBoard {
       size,
       dataTrue = GridData(size),
       dataFalse = GridData(size),
-      dataFree = GridData(size, rows = Vector.fill(size)((1 << (size + 1)) - 1), data = GridData.fullGrid(size)),
-      next = false)
+      dataFree = GridData(size, rows = Vector.fill(size)((1 << (size + 1)) - 1)), next = false)
 }
 
 case class GomokuBoard(
