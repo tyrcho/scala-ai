@@ -120,12 +120,25 @@ case class GridData(
 case class Masks(size: Int, needed: Int) {
   val empty = GridData(size)
 
-  def isComplete(grid: GridData) =
-    matrixIndices.exists {
-      case (r0, c0) =>
+  def isComplete(grid: GridData) = {
+    var found = false
+    var r0 = 0
+    while (r0 <= size - needed && !found) {
+      var c0 = 0
+      while (c0 <= size - needed && !found) {
         val gsm = grid.subMatrix(r0, c0, needed)
-        matricesCompleted.exists(m => (m & gsm) == m)
+        var i = 0
+        while (i < mcSize && !found) {
+          val matrix = matricesCompleted(i)
+          found ||= (matrix & gsm) == matrix
+          i += 1
+        }
+        c0 += 1
+      }
+      r0 += 1
     }
+    found
+  }
 
   val matrixIndices = for {
     r0 <- 0 to size - needed
@@ -162,8 +175,9 @@ case class Masks(size: Int, needed: Int) {
       bit = (1L << i)
     } yield bit).sum
 
-  val matricesCompleted: Set[Long] =
-    (preComputedMatricesRows ++ preComputedMatricesCols :+ preComputedMatricesDiag1 :+ preComputedMatricesDiag2).toSet
+  val matricesCompleted: Seq[Long] =
+    (preComputedMatricesRows ++ preComputedMatricesCols :+ preComputedMatricesDiag1 :+ preComputedMatricesDiag2)
+  val mcSize = matricesCompleted.size
 }
 
 object BitGrid {
