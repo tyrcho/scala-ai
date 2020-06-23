@@ -1,14 +1,9 @@
 package state
 
-import org.scalatest.mock.MockitoSugar
-import org.scalatest.BeforeAndAfter
 import org.junit.runner.RunWith
-import org.scalatest.OneInstancePerTest
-import org.scalatest.FlatSpec
-import org.scalatest.Matchers
+import org.scalatest.{BeforeAndAfter, FlatSpec, Matchers, OneInstancePerTest}
 import org.scalatest.junit.JUnitRunner
-import math._
-import org.scalatest.matchers.ShouldMatchers._
+import org.scalatest.mock.MockitoSugar
 
 @RunWith(classOf[JUnitRunner])
 class StateSpec extends FlatSpec with Matchers with MockitoSugar with OneInstancePerTest with BeforeAndAfter {

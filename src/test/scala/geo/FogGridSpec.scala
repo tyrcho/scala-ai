@@ -1,18 +1,10 @@
 package geo
 
-import org.scalatest.mock.MockitoSugar
-import org.scalatest.BeforeAndAfter
+import geo.Geometry._
 import org.junit.runner.RunWith
-import org.scalatest.OneInstancePerTest
-import org.scalatest.FlatSpec
-import org.scalatest.Matchers
+import org.scalatest.{BeforeAndAfter, FlatSpec, Matchers, OneInstancePerTest}
 import org.scalatest.junit.JUnitRunner
-import games.X
-import games.O
-import games.AlphaBetaTtt
-import Geometry._
-import math._
-import org.scalatest.matchers.ShouldMatchers._
+import org.scalatest.mock.MockitoSugar
 
 @RunWith(classOf[JUnitRunner])
 class FogGridSpec extends FlatSpec with Matchers with MockitoSugar with OneInstancePerTest with BeforeAndAfter {
